@@ -288,6 +288,10 @@
             <input class="form-input" id="f-estimatedLifecycle" placeholder="e.g. 15-20 years">
           </div>
         </div>
+        <div class="form-group">
+          <label class="form-label">Est. Replacement Cost</label>
+          <input class="form-input" id="f-replacementCost" placeholder="e.g. $15,000">
+        </div>
         <div class="divider"></div>
         <div class="form-group">
           <label class="form-label">Location / Description</label>
@@ -689,12 +693,12 @@ async function analyzeImage() {
 }
 
 function populateForm(data) {
-  ['equipmentType','make','modelNumber','serialNumber','yearOfService','estimatedLifecycle','location','notes']
+  ['equipmentType','make','modelNumber','serialNumber','yearOfService','estimatedLifecycle','replacementCost','location','notes']
     .forEach(f => { const el = document.getElementById('f-' + f); if (el) el.value = data[f] || ''; });
 }
 
 function getFormData() {
-  return ['equipmentType','make','modelNumber','serialNumber','yearOfService','estimatedLifecycle','location','notes']
+  return ['equipmentType','make','modelNumber','serialNumber','yearOfService','estimatedLifecycle','replacementCost','location','notes']
     .reduce((o, f) => { o[f] = document.getElementById('f-' + f)?.value.trim() || ''; return o; }, {});
 }
 
@@ -778,6 +782,12 @@ function renderAssets(assets) {
     const thumb = imgUrl
       ? `<img class="asset-thumb" src="${imgUrl}" alt="tag" onclick="viewImage('${imgUrl}',event)" loading="lazy">`
       : `<div class="asset-thumb-placeholder">⚙️</div>`;
+    const { priority, replYear, remLife } = calcAssetProjection(a);
+    const priorityColors = { 'REPLACE NOW':'#FF0000','CRITICAL':'#c62828','HIGH':'#e65100','MEDIUM':'#f57f17','LOW':'#2e7d32' };
+    const priorityBg = { 'REPLACE NOW':'#ffebee','CRITICAL':'#ffebee','HIGH':'#fff3e0','MEDIUM':'#fffde7','LOW':'#e8f5e9' };
+    const showPriority = remLife !== null && priority !== 'Unknown' && priority !== 'LOW';
+    const replTag = replYear ? `<span class="tag" style="background:#e8eaf6;color:#283593">Replace ~${replYear}</span>` : '';
+    const priorityTag = showPriority ? `<span class="tag" style="background:${priorityBg[priority]||'#eee'};color:${priorityColors[priority]||'#333'}">${priority}</span>` : '';
 
     return `
     <div class="asset-card">
@@ -791,6 +801,7 @@ function renderAssets(assets) {
             ${a.equipmentType ? `<span class="tag tag-blue">${esc(a.equipmentType)}</span>` : ''}
             ${a.yearOfService ? `<span class="tag tag-teal">${esc(a.yearOfService)}</span>` : ''}
             ${a.estimatedLifecycle ? `<span class="tag tag-amber">${esc(a.estimatedLifecycle)}</span>` : ''}
+            ${replTag}${priorityTag}
           </div>
         </div>
         <span class="badge-chevron" id="chev-${a.id}">⌄</span>
@@ -800,6 +811,7 @@ function renderAssets(assets) {
           <div><span class="form-label">Location</span><div style="font-size:14px;margin-top:3px">${esc(a.location) || '—'}</div></div>
           <div><span class="form-label">Added</span><div style="font-size:14px;margin-top:3px">${dateStr}</div></div>
         </div>
+        ${a.replacementCost ? `<div class="mt-8"><span class="form-label">Est. Replacement Cost</span><div style="font-size:14px;margin-top:3px;font-weight:600;color:var(--green)">${esc(a.replacementCost)}</div></div>` : ''}
         ${a.notes ? `<div class="mt-8"><span class="form-label">Notes</span><div style="font-size:14px;margin-top:4px">${esc(a.notes)}</div></div>` : ''}
         <div class="asset-actions">
           <button class="btn btn-outline" style="flex:1;min-height:44px;font-size:14px" onclick="openEditModal('${a.id}')">✏️ Edit</button>
@@ -846,6 +858,7 @@ function openEditModal(id) {
       <div class="form-group"><label class="form-label">Year of Service</label><input class="form-input" id="e-yearOfService" value="${esc(a.yearOfService)}"></div>
       <div class="form-group"><label class="form-label">Est. Lifecycle</label><input class="form-input" id="e-estimatedLifecycle" value="${esc(a.estimatedLifecycle)}"></div>
     </div>
+    <div class="form-group"><label class="form-label">Est. Replacement Cost</label><input class="form-input" id="e-replacementCost" value="${esc(a.replacementCost)}" placeholder="e.g. $15,000"></div>
     <div class="form-group"><label class="form-label">Location</label><input class="form-input" id="e-location" value="${esc(a.location)}"></div>
     <div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" id="e-notes">${esc(a.notes)}</textarea></div>
     <button class="btn btn-success btn-full" onclick="saveEdit()" style="margin-bottom:8px">💾 Save Changes</button>
@@ -864,7 +877,7 @@ async function saveEdit() {
   if (!editingId) return;
   const a = allAssets.find(x => x.id === editingId);
   if (!a) return;
-  const fields = ['equipmentType','make','modelNumber','serialNumber','yearOfService','estimatedLifecycle','location','notes'];
+  const fields = ['equipmentType','make','modelNumber','serialNumber','yearOfService','estimatedLifecycle','replacementCost','location','notes'];
   const updated = { ...a };
   fields.forEach(f => { updated[f] = document.getElementById('e-' + f)?.value.trim() || ''; });
   try {
@@ -885,43 +898,166 @@ async function deleteAsset(id) {
   } catch (err) { showToast('❌ ' + err.message); }
 }
 
+// ══════════════ CAPITAL PROJECTION HELPERS ══════════════
+function parseYear(s) {
+  if (!s) return null;
+  const m = String(s).match(/\b(19|20)\d{2}\b/);
+  return m ? parseInt(m[0]) : null;
+}
+
+function parseLifecycleYears(s) {
+  if (!s) return null;
+  const nums = String(s).match(/\d+/g);
+  if (!nums) return null;
+  if (nums.length >= 2) return Math.round((parseInt(nums[0]) + parseInt(nums[1])) / 2);
+  return parseInt(nums[0]);
+}
+
+function parseCost(s) {
+  if (!s) return null;
+  const n = parseFloat(String(s).replace(/[$,\s]/g, ''));
+  return isNaN(n) ? null : n;
+}
+
+function getPriority(remainingLife) {
+  if (remainingLife === null) return 'Unknown';
+  if (remainingLife <= 0)  return 'REPLACE NOW';
+  if (remainingLife <= 2)  return 'CRITICAL';
+  if (remainingLife <= 5)  return 'HIGH';
+  if (remainingLife <= 10) return 'MEDIUM';
+  return 'LOW';
+}
+
+function calcAssetProjection(a) {
+  const currentYear = new Date().getFullYear();
+  const yearIn    = parseYear(a.yearOfService);
+  const lifecycle = parseLifecycleYears(a.estimatedLifecycle);
+  const age       = yearIn ? currentYear - yearIn : null;
+  const remLife   = (age !== null && lifecycle !== null) ? lifecycle - age : null;
+  const replYear  = yearIn && lifecycle ? yearIn + lifecycle : null;
+  return { age, remLife, replYear, priority: getPriority(remLife) };
+}
+
 // ══════════════ EXCEL EXPORT ══════════════
 async function exportExcel() {
   const assets = await DB.getAll();
   if (!assets.length) { showToast('No assets to export yet'); return; }
 
-  const rows = assets.map((a, i) => ({
-    '#': i + 1,
-    'Date Added': new Date(a.timestamp).toLocaleDateString('en-US'),
-    'Equipment Type': a.equipmentType || '',
-    'Make': a.make || '',
-    'Model Number': a.modelNumber || '',
-    'Serial Number': a.serialNumber || '',
-    'Year of Service': a.yearOfService || '',
-    'Est. Lifecycle': a.estimatedLifecycle || '',
-    'Location': a.location || '',
-    'Notes': a.notes || '',
-    'Has Photo': a.imageBlob ? 'Yes' : 'No'
-  }));
-
-  const ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols'] = [
-    {wch:4},{wch:12},{wch:20},{wch:16},{wch:20},{wch:20},{wch:16},{wch:16},{wch:22},{wch:32},{wch:10}
-  ];
+  const currentYear = new Date().getFullYear();
+  const projYears   = Array.from({ length: 11 }, (_, i) => currentYear + i);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Equipment Assets');
 
-  const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+  // ── Sheet 1: Asset Inventory ──────────────────────────────────
+  const inventoryRows = assets.map((a, i) => {
+    const { age, remLife, replYear, priority } = calcAssetProjection(a);
+    const cost = parseCost(a.replacementCost);
+    return {
+      '#':                    i + 1,
+      'Survey Date':          new Date(a.timestamp).toLocaleDateString('en-US'),
+      'Equipment Type':       a.equipmentType || '',
+      'Make':                 a.make || '',
+      'Model Number':         a.modelNumber || '',
+      'Serial Number':        a.serialNumber || '',
+      'Location':             a.location || '',
+      'Year of Service':      a.yearOfService || '',
+      'Est. Lifecycle':       a.estimatedLifecycle || '',
+      'Age (yrs)':            age !== null ? age : '',
+      'Remaining Life (yrs)': remLife !== null ? remLife : '',
+      'Replace By Year':      replYear || '',
+      'Priority':             priority,
+      'Est. Replacement Cost': cost !== null ? cost : (a.replacementCost || ''),
+      'Notes':                a.notes || '',
+      'Has Photo':            a.imageBlob ? 'Yes' : 'No'
+    };
+  });
+
+  const ws1 = XLSX.utils.json_to_sheet(inventoryRows);
+  ws1['!cols'] = [
+    {wch:4},{wch:12},{wch:20},{wch:16},{wch:20},{wch:20},{wch:22},
+    {wch:14},{wch:16},{wch:10},{wch:18},{wch:14},{wch:14},{wch:22},{wch:32},{wch:10}
+  ];
+  // Format cost column as currency (column N = index 13)
+  const costColLetter = 'N';
+  for (let r = 2; r <= inventoryRows.length + 1; r++) {
+    const cell = ws1[`${costColLetter}${r}`];
+    if (cell && typeof cell.v === 'number') cell.z = '$#,##0';
+  }
+  XLSX.utils.book_append_sheet(wb, ws1, 'Asset Inventory');
+
+  // ── Sheet 2: Capital Projection (sorted by replace year) ──────
+  const projRows = assets
+    .map(a => {
+      const { age, remLife, replYear, priority } = calcAssetProjection(a);
+      const cost = parseCost(a.replacementCost);
+      return { a, age, remLife, replYear, priority, cost };
+    })
+    .filter(x => x.replYear !== null)
+    .sort((x, y) => x.replYear - y.replYear)
+    .map(({ a, age, remLife, replYear, priority, cost }) => ({
+      'Replace Year':          replYear,
+      'Priority':              priority,
+      'Equipment Type':        a.equipmentType || '',
+      'Make':                  a.make || '',
+      'Model Number':          a.modelNumber || '',
+      'Serial Number':         a.serialNumber || '',
+      'Location':              a.location || '',
+      'Year of Service':       a.yearOfService || '',
+      'Age at Replacement':    age !== null ? age + (replYear - currentYear) : '',
+      'Est. Replacement Cost': cost !== null ? cost : (a.replacementCost || ''),
+      'Notes':                 a.notes || ''
+    }));
+
+  const ws2 = XLSX.utils.json_to_sheet(projRows.length ? projRows : [{ 'Note': 'Add Year of Service and Lifecycle to assets to generate projections' }]);
+  ws2['!cols'] = [
+    {wch:12},{wch:14},{wch:20},{wch:16},{wch:20},{wch:20},{wch:22},{wch:14},{wch:18},{wch:22},{wch:32}
+  ];
+  if (projRows.length) {
+    for (let r = 2; r <= projRows.length + 1; r++) {
+      const cell = ws2[`J${r}`];
+      if (cell && typeof cell.v === 'number') cell.z = '$#,##0';
+    }
+  }
+  XLSX.utils.book_append_sheet(wb, ws2, 'Capital Projection');
+
+  // ── Sheet 3: 10-Year Summary ──────────────────────────────────
+  const summaryRows = projYears.map(yr => {
+    const items = assets.filter(a => {
+      const { replYear } = calcAssetProjection(a);
+      return replYear === yr;
+    });
+    const totalCost = items.reduce((sum, a) => {
+      const c = parseCost(a.replacementCost);
+      return sum + (c || 0);
+    }, 0);
+    const itemList = items.map(a => [a.make, a.modelNumber].filter(Boolean).join(' ') || a.equipmentType || 'Unknown').join(', ');
+    return {
+      'Year':            yr,
+      '# Items Due':     items.length,
+      'Equipment Due':   itemList || '—',
+      'Est. Total Cost': totalCost > 0 ? totalCost : (items.length ? 'Cost TBD' : '—')
+    };
+  });
+
+  const ws3 = XLSX.utils.json_to_sheet(summaryRows);
+  ws3['!cols'] = [{wch:8},{wch:12},{wch:55},{wch:18}];
+  for (let r = 2; r <= summaryRows.length + 1; r++) {
+    const cell = ws3[`D${r}`];
+    if (cell && typeof cell.v === 'number') cell.z = '$#,##0';
+  }
+  XLSX.utils.book_append_sheet(wb, ws3, `${currentYear}–${currentYear+10} Summary`);
+
+  // ── Download ──────────────────────────────────────────────────
+  const buf  = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
   const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `equipment-assets-${new Date().toISOString().slice(0,10)}.xlsx`;
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `capital-projection-${new Date().toISOString().slice(0,10)}.xlsx`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  showToast('⬇️ Excel file downloading…');
+  showToast('⬇️ Capital projection downloading…');
 }
 
 // ══════════════ SETTINGS ══════════════
