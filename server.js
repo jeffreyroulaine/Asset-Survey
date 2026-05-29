@@ -216,40 +216,137 @@ app.delete('/api/assets/:id', (req, res) => {
   res.json({ success: true });
 });
 
-// Export to Excel
+// Export to Excel — Capital Projection
 app.get('/api/export', (req, res) => {
   const assets = loadAssets();
+  const currentYear = new Date().getFullYear();
 
-  const rows = assets.map((a, i) => ({
-    '#': i + 1,
-    'Date Added': new Date(a.timestamp).toLocaleDateString('en-US'),
-    'Equipment Type': a.equipmentType || '',
-    'Make': a.make || '',
-    'Model Number': a.modelNumber || '',
-    'Serial Number': a.serialNumber || '',
-    'Year of Service': a.yearOfService || '',
-    'Est. Lifecycle': a.estimatedLifecycle || '',
-    'Location': a.location || '',
-    'Notes': a.notes || '',
-    'Photo Filename': a.imagePath || ''
-  }));
-
-  const ws = XLSX.utils.json_to_sheet(rows);
-
-  // Set column widths
-  ws['!cols'] = [
-    { wch: 4 }, { wch: 12 }, { wch: 18 }, { wch: 16 }, { wch: 20 },
-    { wch: 20 }, { wch: 16 }, { wch: 16 }, { wch: 20 }, { wch: 30 }, { wch: 30 }
-  ];
+  function parseYear(s) {
+    if (!s) return null;
+    const m = String(s).match(/\b(19|20)\d{2}\b/);
+    return m ? parseInt(m[0]) : null;
+  }
+  function parseLifecycleYears(s) {
+    if (!s) return null;
+    const nums = String(s).match(/\d+/g);
+    if (!nums) return null;
+    return nums.length >= 2 ? Math.round((+nums[0] + +nums[1]) / 2) : +nums[0];
+  }
+  function parseCost(s) {
+    if (!s) return null;
+    const n = parseFloat(String(s).replace(/[$,\s]/g, ''));
+    return isNaN(n) ? null : n;
+  }
+  function getPriority(rem) {
+    if (rem === null) return 'Unknown';
+    if (rem <= 0)  return 'REPLACE NOW';
+    if (rem <= 2)  return 'CRITICAL';
+    if (rem <= 5)  return 'HIGH';
+    if (rem <= 10) return 'MEDIUM';
+    return 'LOW';
+  }
+  function calcProj(a) {
+    const yearIn    = parseYear(a.yearOfService);
+    const lifecycle = parseLifecycleYears(a.estimatedLifecycle);
+    const age       = yearIn ? currentYear - yearIn : null;
+    const remLife   = (age !== null && lifecycle !== null) ? lifecycle - age : null;
+    const replYear  = yearIn && lifecycle ? yearIn + lifecycle : null;
+    return { age, remLife, replYear, priority: getPriority(remLife) };
+  }
 
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Equipment Assets');
+
+  // ── Sheet 1: Asset Inventory ──
+  const inventoryRows = assets.map((a, i) => {
+    const { age, remLife, replYear, priority } = calcProj(a);
+    const cost = parseCost(a.replacementCost);
+    return {
+      '#':                    i + 1,
+      'Survey Date':          new Date(a.timestamp).toLocaleDateString('en-US'),
+      'Equipment Type':       a.equipmentType || '',
+      'Make':                 a.make || '',
+      'Model Number':         a.modelNumber || '',
+      'Serial Number':        a.serialNumber || '',
+      'Location':             a.location || '',
+      'Year of Service':      a.yearOfService || '',
+      'Est. Lifecycle':       a.estimatedLifecycle || '',
+      'Age (yrs)':            age !== null ? age : '',
+      'Remaining Life (yrs)': remLife !== null ? remLife : '',
+      'Replace By Year':      replYear || '',
+      'Priority':             priority,
+      'Est. Replacement Cost': cost !== null ? cost : (a.replacementCost || ''),
+      'Notes':                a.notes || '',
+      'Photo Filename':       a.imagePath || ''
+    };
+  });
+  const ws1 = XLSX.utils.json_to_sheet(inventoryRows);
+  ws1['!cols'] = [
+    {wch:4},{wch:12},{wch:20},{wch:16},{wch:20},{wch:20},{wch:22},
+    {wch:14},{wch:16},{wch:10},{wch:18},{wch:14},{wch:14},{wch:22},{wch:32},{wch:24}
+  ];
+  for (let r = 2; r <= inventoryRows.length + 1; r++) {
+    const cell = ws1[`N${r}`];
+    if (cell && typeof cell.v === 'number') cell.z = '$#,##0';
+  }
+  XLSX.utils.book_append_sheet(wb, ws1, 'Asset Inventory');
+
+  // ── Sheet 2: Capital Projection (sorted by replace year) ──
+  const projRows = assets
+    .map(a => ({ a, ...calcProj(a), cost: parseCost(a.replacementCost) }))
+    .filter(x => x.replYear !== null)
+    .sort((x, y) => x.replYear - y.replYear)
+    .map(({ a, age, replYear, priority, cost }) => ({
+      'Replace Year':          replYear,
+      'Priority':              priority,
+      'Equipment Type':        a.equipmentType || '',
+      'Make':                  a.make || '',
+      'Model Number':          a.modelNumber || '',
+      'Serial Number':         a.serialNumber || '',
+      'Location':              a.location || '',
+      'Year of Service':       a.yearOfService || '',
+      'Age at Replacement':    age !== null ? age + (replYear - currentYear) : '',
+      'Est. Replacement Cost': cost !== null ? cost : (a.replacementCost || ''),
+      'Notes':                 a.notes || ''
+    }));
+  const ws2 = XLSX.utils.json_to_sheet(
+    projRows.length ? projRows
+      : [{ 'Note': 'Add Year of Service and Lifecycle to assets to generate projections' }]
+  );
+  ws2['!cols'] = [
+    {wch:12},{wch:14},{wch:20},{wch:16},{wch:20},{wch:20},{wch:22},{wch:14},{wch:18},{wch:22},{wch:32}
+  ];
+  if (projRows.length) {
+    for (let r = 2; r <= projRows.length + 1; r++) {
+      const cell = ws2[`J${r}`];
+      if (cell && typeof cell.v === 'number') cell.z = '$#,##0';
+    }
+  }
+  XLSX.utils.book_append_sheet(wb, ws2, 'Capital Projection');
+
+  // ── Sheet 3: 10-Year Summary ──
+  const projYears = Array.from({ length: 11 }, (_, i) => currentYear + i);
+  const summaryRows = projYears.map(yr => {
+    const items = assets.filter(a => calcProj(a).replYear === yr);
+    const totalCost = items.reduce((sum, a) => sum + (parseCost(a.replacementCost) || 0), 0);
+    return {
+      'Year':            yr,
+      '# Items Due':     items.length,
+      'Equipment Due':   items.map(a => [a.make, a.modelNumber].filter(Boolean).join(' ') || a.equipmentType || 'Unknown').join(', ') || '—',
+      'Est. Total Cost': totalCost > 0 ? totalCost : (items.length ? 'Cost TBD' : '—')
+    };
+  });
+  const ws3 = XLSX.utils.json_to_sheet(summaryRows);
+  ws3['!cols'] = [{wch:8},{wch:12},{wch:55},{wch:18}];
+  for (let r = 2; r <= summaryRows.length + 1; r++) {
+    const cell = ws3[`D${r}`];
+    if (cell && typeof cell.v === 'number') cell.z = '$#,##0';
+  }
+  XLSX.utils.book_append_sheet(wb, ws3, `${currentYear}–${currentYear+10} Summary`);
 
   const dateStr = new Date().toISOString().slice(0, 10);
   const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  res.setHeader('Content-Disposition', `attachment; filename="equipment-assets-${dateStr}.xlsx"`);
+  res.setHeader('Content-Disposition', `attachment; filename="capital-projection-${dateStr}.xlsx"`);
   res.send(buffer);
 });
 

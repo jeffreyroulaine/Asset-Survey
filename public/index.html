@@ -555,6 +555,11 @@
           </div>
         </div>
 
+        <div class="form-group">
+          <label class="form-label">Est. Replacement Cost</label>
+          <input class="form-input" id="f-replacementCost" placeholder="e.g. $15,000">
+        </div>
+
         <div class="divider"></div>
         <div class="form-group">
           <label class="form-label">Location / Description</label>
@@ -755,24 +760,22 @@ async function analyzeImage() {
 }
 
 function populateForm(data) {
-  const fields = ['equipmentType','make','modelNumber','serialNumber','yearOfService','estimatedLifecycle','location','notes'];
-  fields.forEach(f => {
-    const el = document.getElementById('f-' + f);
-    if (el) el.value = data[f] || '';
-  });
+  ['equipmentType','make','modelNumber','serialNumber','yearOfService','estimatedLifecycle','replacementCost','location','notes']
+    .forEach(f => { const el = document.getElementById('f-' + f); if (el) el.value = data[f] || ''; });
 }
 
 function getFormData() {
   return {
-    equipmentType: document.getElementById('f-equipmentType').value.trim(),
-    make: document.getElementById('f-make').value.trim(),
-    modelNumber: document.getElementById('f-modelNumber').value.trim(),
-    serialNumber: document.getElementById('f-serialNumber').value.trim(),
-    yearOfService: document.getElementById('f-yearOfService').value.trim(),
+    equipmentType:    document.getElementById('f-equipmentType').value.trim(),
+    make:             document.getElementById('f-make').value.trim(),
+    modelNumber:      document.getElementById('f-modelNumber').value.trim(),
+    serialNumber:     document.getElementById('f-serialNumber').value.trim(),
+    yearOfService:    document.getElementById('f-yearOfService').value.trim(),
     estimatedLifecycle: document.getElementById('f-estimatedLifecycle').value.trim(),
-    location: document.getElementById('f-location').value.trim(),
-    notes: document.getElementById('f-notes').value.trim(),
-    imagePath: currentImagePath || ''
+    replacementCost:  document.getElementById('f-replacementCost').value.trim(),
+    location:         document.getElementById('f-location').value.trim(),
+    notes:            document.getElementById('f-notes').value.trim(),
+    imagePath:        currentImagePath || ''
   };
 }
 
@@ -852,11 +855,29 @@ function renderAssets(assets) {
   empty.style.display = 'none';
   count.textContent = `${assets.length} asset${assets.length !== 1 ? 's' : ''}`;
 
+  const currentYear = new Date().getFullYear();
+  function parseYear(s) { const m = String(s||'').match(/\b(19|20)\d{2}\b/); return m ? +m[0] : null; }
+  function parseLC(s) { const n = String(s||'').match(/\d+/g); return n ? (n.length>=2 ? Math.round((+n[0]+ +n[1])/2) : +n[0]) : null; }
+
   list.innerHTML = assets.map(a => {
     const dateStr = new Date(a.timestamp).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
     const thumb = a.imagePath
       ? `<img class="asset-thumb" src="/uploads/${a.imagePath}" alt="tag" onclick="viewImage('/uploads/${a.imagePath}',event)">`
       : `<div class="asset-thumb-placeholder">⚙️</div>`;
+    const yearIn = parseYear(a.yearOfService);
+    const lc = parseLC(a.estimatedLifecycle);
+    const age = yearIn ? currentYear - yearIn : null;
+    const remLife = (age !== null && lc !== null) ? lc - age : null;
+    const replYear = yearIn && lc ? yearIn + lc : null;
+    const priorityMap = { 'REPLACE NOW':'#c62828','CRITICAL':'#c62828','HIGH':'#e65100','MEDIUM':'#f57f17' };
+    const bgMap = { 'REPLACE NOW':'#ffebee','CRITICAL':'#ffebee','HIGH':'#fff3e0','MEDIUM':'#fffde7' };
+    let priority = null;
+    if (remLife !== null) {
+      if (remLife<=0) priority='REPLACE NOW'; else if (remLife<=2) priority='CRITICAL';
+      else if (remLife<=5) priority='HIGH'; else if (remLife<=10) priority='MEDIUM';
+    }
+    const replTag = replYear ? `<span class="tag" style="background:#e8eaf6;color:#283593">Replace ~${replYear}</span>` : '';
+    const priorityTag = priority ? `<span class="tag" style="background:${bgMap[priority]};color:${priorityMap[priority]}">${priority}</span>` : '';
 
     return `
     <div class="asset-card" id="acard-${a.id}">
@@ -870,6 +891,7 @@ function renderAssets(assets) {
             ${a.equipmentType ? `<span class="tag tag-blue">${esc(a.equipmentType)}</span>` : ''}
             ${a.yearOfService ? `<span class="tag tag-teal">${esc(a.yearOfService)}</span>` : ''}
             ${a.estimatedLifecycle ? `<span class="tag tag-amber">${esc(a.estimatedLifecycle)}</span>` : ''}
+            ${replTag}${priorityTag}
           </div>
         </div>
         <span class="badge-chevron" id="chevron-${a.id}">⌄</span>
@@ -879,6 +901,7 @@ function renderAssets(assets) {
           <div><span class="form-label">Location</span><div style="font-size:14px">${esc(a.location) || '—'}</div></div>
           <div><span class="form-label">Added</span><div style="font-size:14px">${dateStr}</div></div>
         </div>
+        ${a.replacementCost ? `<div class="mt-8"><span class="form-label">Est. Replacement Cost</span><div style="font-size:14px;margin-top:3px;font-weight:600;color:var(--green)">${esc(a.replacementCost)}</div></div>` : ''}
         ${a.notes ? `<div class="mt-8"><span class="form-label">Notes</span><div style="font-size:14px;margin-top:4px">${esc(a.notes)}</div></div>` : ''}
         <div class="asset-actions">
           <button class="btn btn-outline" style="flex:1;min-height:44px;font-size:14px" onclick="openEditModal('${a.id}')">✏️ Edit</button>
@@ -937,6 +960,8 @@ function openEditModal(id) {
       <div class="form-group"><label class="form-label">Est. Lifecycle</label>
         <input class="form-input" id="e-estimatedLifecycle" value="${esc(a.estimatedLifecycle)}"></div>
     </div>
+    <div class="form-group"><label class="form-label">Est. Replacement Cost</label>
+      <input class="form-input" id="e-replacementCost" value="${esc(a.replacementCost)}" placeholder="e.g. $15,000"></div>
     <div class="form-group"><label class="form-label">Location</label>
       <input class="form-input" id="e-location" value="${esc(a.location)}"></div>
     <div class="form-group"><label class="form-label">Notes</label>
@@ -957,14 +982,15 @@ function closeEditModal() {
 async function saveEdit() {
   if (!editingAsset) return;
   const updated = {
-    equipmentType: document.getElementById('e-equipmentType').value.trim(),
-    make: document.getElementById('e-make').value.trim(),
-    modelNumber: document.getElementById('e-modelNumber').value.trim(),
-    serialNumber: document.getElementById('e-serialNumber').value.trim(),
-    yearOfService: document.getElementById('e-yearOfService').value.trim(),
+    equipmentType:     document.getElementById('e-equipmentType').value.trim(),
+    make:              document.getElementById('e-make').value.trim(),
+    modelNumber:       document.getElementById('e-modelNumber').value.trim(),
+    serialNumber:      document.getElementById('e-serialNumber').value.trim(),
+    yearOfService:     document.getElementById('e-yearOfService').value.trim(),
     estimatedLifecycle: document.getElementById('e-estimatedLifecycle').value.trim(),
-    location: document.getElementById('e-location').value.trim(),
-    notes: document.getElementById('e-notes').value.trim()
+    replacementCost:   document.getElementById('e-replacementCost').value.trim(),
+    location:          document.getElementById('e-location').value.trim(),
+    notes:             document.getElementById('e-notes').value.trim()
   };
   try {
     const res = await fetch('/api/assets/' + editingAsset.id, {
