@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0f4c75">
+  <title>Asset Survey</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    :root {
+      --blue-dark: #0f4c75;
+      --blue: #1b6ca8;
+      --blue-light: #2196f3;
+      --teal: #00acc1;
+      --green: #2e7d32;
+      --red: #c62828;
+      --amber: #f57f17;
+      --bg: #f0f4f8;
+      --card: #ffffff;
+      --text: #1a2027;
+      --text-muted: #607080;
+      --border: #dde3ea;
+      --shadow: 0 2px 12px rgba(0,0,0,.10);
+      --shadow-lg: 0 4px 24px rgba(0,0,0,.15);
+      --radius: 14px;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
+
+    .header {
+      background: var(--blue-dark);
+      color: white;
+      padding: calc(12px + var(--safe-top)) 16px 12px;
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; gap: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.3);
+    }
+    .header-icon { font-size: 26px; }
+    .header-title { font-size: 20px; font-weight: 700; letter-spacing: -.3px; }
+    .header-subtitle { font-size: 11px; opacity: .7; margin-top: 1px; }
+    .header-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+    .tabs { display: flex; background: var(--blue-dark); padding: 0 16px; border-top: 1px solid rgba(255,255,255,.1); }
+    .tab-btn { flex: 1; padding: 10px 8px; background: none; border: none; color: rgba(255,255,255,.6); font-size: 13px; font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; border-bottom: 3px solid transparent; transition: color .2s; }
+    .tab-btn.active { color: white; border-bottom-color: var(--teal); }
+    .tab-btn .tab-icon { font-size: 18px; }
+    .tab-badge { background: var(--teal); color: white; border-radius: 10px; padding: 1px 6px; font-size: 10px; display: none; }
+    .tab-badge.show { display: inline; }
+
+    .section { display: none; padding: 16px; padding-bottom: calc(24px + var(--safe-bottom)); }
+    .section.active { display: block; }
+
+    .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 16px; }
+    .card-header { padding: 14px 16px; background: linear-gradient(135deg, var(--blue-dark), var(--blue)); color: white; font-size: 14px; font-weight: 700; letter-spacing: .3px; display: flex; align-items: center; gap: 8px; }
+    .card-body { padding: 16px; }
+
+    .capture-zone { border: 2.5px dashed var(--blue-light); border-radius: var(--radius); background: #e8f4fd; padding: 32px 20px; text-align: center; cursor: pointer; transition: all .2s; position: relative; overflow: hidden; }
+    .capture-zone:active { background: #d0eafa; transform: scale(.98); }
+    .capture-zone .preview-img { width: 100%; max-height: 260px; object-fit: contain; border-radius: 10px; display: none; }
+    .capture-zone .placeholder { pointer-events: none; }
+    .capture-icon { font-size: 52px; margin-bottom: 10px; }
+    .capture-text { font-size: 17px; font-weight: 700; color: var(--blue); }
+    .capture-sub { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+    #fileInput { display: none; }
+
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 13px 20px; border-radius: 50px; border: none; font-size: 15px; font-weight: 700; cursor: pointer; transition: all .2s; min-height: 50px; white-space: nowrap; }
+    .btn:active { transform: scale(.96); }
+    .btn-primary { background: var(--blue); color: white; }
+    .btn-primary:hover { background: var(--blue-dark); }
+    .btn-success { background: var(--green); color: white; }
+    .btn-danger { background: var(--red); color: white; }
+    .btn-ghost { background: rgba(255,255,255,.15); color: white; border: 1.5px solid rgba(255,255,255,.3); padding: 8px 14px; min-height: 38px; font-size: 13px; }
+    .btn-outline { background: white; color: var(--blue); border: 2px solid var(--blue); }
+    .btn-teal { background: var(--teal); color: white; }
+    .btn-full { width: 100%; }
+    .btn:disabled { opacity: .45; cursor: not-allowed; transform: none !important; }
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .form-group { margin-bottom: 14px; }
+    .form-label { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--text-muted); margin-bottom: 5px; }
+    .form-input, .form-textarea { width: 100%; padding: 11px 13px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 15px; color: var(--text); background: white; transition: border-color .2s; -webkit-appearance: none; font-family: inherit; }
+    .form-input:focus, .form-textarea:focus { outline: none; border-color: var(--blue-light); box-shadow: 0 0 0 3px rgba(33,150,243,.15); }
+    .form-textarea { resize: vertical; min-height: 72px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 380px) { .form-row { grid-template-columns: 1fr; } }
+
+    .alert { padding: 12px 14px; border-radius: 10px; font-size: 14px; font-weight: 500; display: flex; align-items: flex-start; gap: 8px; margin-bottom: 14px; }
+    .alert-info { background: #e3f2fd; color: #1565c0; }
+    .alert-success { background: #e8f5e9; color: #2e7d32; }
+    .alert-error { background: #ffebee; color: #c62828; }
+    .alert-warning { background: #fff8e1; color: #e65100; }
+
+    .spinner-wrap { display: none; flex-direction: column; align-items: center; padding: 32px 16px; gap: 14px; }
+    .spinner-wrap.visible { display: flex; }
+    .spinner { width: 48px; height: 48px; border: 4px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner-label { font-size: 14px; color: var(--text-muted); font-weight: 500; }
+    .spinner-steps { font-size: 12px; color: var(--blue); text-align: center; }
+
+    .search-bar { display: flex; gap: 8px; margin-bottom: 14px; align-items: center; }
+    .search-input { flex: 1; padding: 11px 13px; border: 1.5px solid var(--border); border-radius: 50px; font-size: 15px; background: white; -webkit-appearance: none; font-family: inherit; }
+    .search-input:focus { outline: none; border-color: var(--blue-light); }
+    .asset-count { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; padding: 0 2px; }
+
+    .asset-card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 12px; overflow: hidden; }
+    .asset-card-top { display: flex; gap: 12px; padding: 13px 14px; cursor: pointer; }
+    .asset-thumb { width: 64px; height: 64px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: var(--bg); cursor: zoom-in; }
+    .asset-thumb-placeholder { width: 64px; height: 64px; border-radius: 8px; background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0; }
+    .asset-info { flex: 1; min-width: 0; }
+    .asset-make { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); }
+    .asset-model { font-size: 16px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .asset-serial { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+    .asset-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .tag-blue { background: #e3f2fd; color: #1565c0; }
+    .tag-teal { background: #e0f7fa; color: #00695c; }
+    .tag-amber { background: #fff8e1; color: #e65100; }
+    .badge-chevron { margin-left: auto; font-size: 18px; color: var(--text-muted); transition: transform .2s; align-self: center; }
+    .badge-chevron.open { transform: rotate(180deg); }
+    .asset-expand { display: none; border-top: 1px solid var(--border); padding: 14px; }
+    .asset-expand.open { display: block; }
+    .asset-actions { display: flex; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+
+    .empty-state { text-align: center; padding: 48px 24px; color: var(--text-muted); }
+    .empty-state .empty-icon { font-size: 60px; margin-bottom: 14px; }
+    .empty-state p { font-size: 16px; font-weight: 500; }
+    .empty-state small { font-size: 13px; }
+
+    .toast { position: fixed; bottom: calc(24px + var(--safe-bottom)); left: 50%; transform: translateX(-50%) translateY(80px); background: #1a2027; color: white; padding: 12px 22px; border-radius: 50px; font-size: 14px; font-weight: 600; z-index: 999; transition: transform .3s cubic-bezier(.34,1.56,.64,1); white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,.3); max-width: calc(100vw - 32px); text-align: center; }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 200; align-items: flex-end; }
+    .modal-overlay.open { display: flex; }
+    .modal-sheet { background: var(--card); border-radius: 20px 20px 0 0; width: 100%; max-height: 92vh; overflow-y: auto; padding: 0 0 calc(24px + var(--safe-bottom)); animation: slideUp .3s cubic-bezier(.34,1.56,.64,1); }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 12px auto 8px; }
+    .modal-title { padding: 8px 16px 16px; font-size: 18px; font-weight: 800; color: var(--text); display: flex; align-items: center; justify-content: space-between; }
+    .modal-close { background: var(--bg); border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-muted); }
+    .modal-body { padding: 0 16px; }
+
+    .img-viewer { display: none; position: fixed; inset: 0; background: black; z-index: 300; align-items: center; justify-content: center; }
+    .img-viewer.open { display: flex; }
+    .img-viewer img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .img-viewer-close { position: absolute; top: calc(16px + var(--safe-top)); right: 16px; background: rgba(255,255,255,.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+    .divider { height: 1px; background: var(--border); margin: 14px 0; }
+    .mt-8 { margin-top: 8px; }
+    .mt-12 { margin-top: 12px; }
+    .mt-16 { margin-top: 16px; }
+    .icon-btn { background: none; border: none; cursor: pointer; padding: 6px; font-size: 20px; color: rgba(255,255,255,.8); min-width: 36px; min-height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+    .icon-btn:active { background: rgba(255,255,255,.15); }
+    .key-indicator { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
+    .key-set { background: rgba(0,172,193,.25); color: #80deea; }
+    .key-missing { background: rgba(255,152,0,.25); color: #ffcc80; }
+
+    /* ── Install banner ── */
+    .install-banner {
+      background: linear-gradient(135deg, #1b6ca8, #00acc1);
+      color: white;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .install-banner .install-icon { font-size: 22px; flex-shrink: 0; }
+    .install-banner .install-text { flex: 1; line-height: 1.4; }
+    .install-banner strong { display: block; font-size: 15px; font-weight: 700; margin-bottom: 1px; }
+    .install-banner .install-close { background: rgba(255,255,255,.2); border: none; color: white; width: 28px; height: 28px; border-radius: 50%; font-size: 16px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+
+    /* ── Install instructions modal ── */
+    .install-step { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .install-step:last-child { border-bottom: none; }
+    .install-step-num { background: var(--blue); color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; flex-shrink: 0; }
+    .install-step-text { flex: 1; font-size: 15px; line-height: 1.5; }
+    .install-step-text strong { color: var(--text); }
+    .install-share-icon { display: inline-block; background: #007aff; color: white; width: 24px; height: 24px; border-radius: 5px; text-align: center; line-height: 24px; font-size: 14px; vertical-align: middle; }
+  </style>
+</head>
+<body>
+
+<!-- Install to Home Screen banner (iOS only, shown until dismissed) -->
+<div class="install-banner" id="installBanner" style="display:none">
+  <span class="install-icon">📲</span>
+  <div class="install-text">
+    <strong>Add to Home Screen</strong>
+    Use this app like a native app — tap to learn how
+  </div>
+  <button class="install-close" onclick="showInstallModal()">?</button>
+  <button class="install-close" onclick="dismissBanner()" style="font-size:14px">✕</button>
+</div>
+
+<div class="header">
+  <div class="header-icon">🏗️</div>
+  <div>
+    <div class="header-title">Asset Survey</div>
+    <div class="header-subtitle">Equipment Tag Scanner</div>
+  </div>
+  <div class="header-right">
+    <span id="keyIndicator" class="key-indicator key-missing">⚠️ No API Key</span>
+    <button class="icon-btn" onclick="openSettings()" title="Settings">⚙️</button>
+    <button class="btn btn-ghost" onclick="exportExcel()">⬇️ Export</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('survey')" id="tab-survey">
+    <span class="tab-icon">📷</span>New Survey
+  </button>
+  <button class="tab-btn" onclick="switchTab('assets')" id="tab-assets">
+    <span class="tab-icon">📋</span>Assets
+    <span class="tab-badge" id="assetBadge"></span>
+  </button>
+</div>
+
+<!-- ══════════════ SURVEY ══════════════ -->
+<div class="section active" id="section-survey">
+
+  <div class="card">
+    <div class="card-header">📷 Step 1 — Capture Equipment Tag</div>
+    <div class="card-body">
+      <div class="capture-zone" id="captureZone" onclick="triggerCapture()">
+        <img class="preview-img" id="previewImg" alt="Captured tag">
+        <div class="placeholder" id="capturePlaceholder">
+          <div class="capture-icon">📸</div>
+          <div class="capture-text">Tap to Take Photo or Upload</div>
+          <div class="capture-sub">Point camera at the equipment nameplate or ID tag</div>
+        </div>
+      </div>
+      <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="handleFileSelect(event)">
+      <div class="btn-row mt-12">
+        <button class="btn btn-primary" style="flex:1" onclick="triggerCapture()">📷 Camera / Library</button>
+        <button class="btn btn-outline" id="clearBtn" onclick="clearCapture()" style="display:none">✕ Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn btn-primary btn-full" id="analyzeBtn" onclick="analyzeImage()" disabled>
+    🔍 Analyze Tag with AI
+  </button>
+
+  <div class="spinner-wrap" id="spinnerWrap">
+    <div class="spinner"></div>
+    <div class="spinner-label" id="spinnerLabel">Analyzing tag…</div>
+    <div class="spinner-steps" id="spinnerSteps"></div>
+  </div>
+
+  <div id="resultsSection" style="display:none">
+    <div class="card mt-16">
+      <div class="card-header">✅ Step 2 — Verify & Correct Extracted Data</div>
+      <div class="card-body">
+        <div id="aiAlert"></div>
+        <div class="form-group">
+          <label class="form-label">Equipment Type</label>
+          <input class="form-input" id="f-equipmentType" placeholder="e.g. Rooftop HVAC Unit, Boiler, Pump…">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Make / Manufacturer</label>
+            <input class="form-input" id="f-make" placeholder="e.g. Carrier">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Model Number</label>
+            <input class="form-input" id="f-modelNumber" placeholder="e.g. 50XC-060">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Serial Number</label>
+          <input class="form-input" id="f-serialNumber" placeholder="e.g. 2319G12345">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Year of Service</label>
+            <input class="form-input" id="f-yearOfService" placeholder="e.g. 2018">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Est. Lifecycle</label>
+            <input class="form-input" id="f-estimatedLifecycle" placeholder="e.g. 15-20 years">
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="form-group">
+          <label class="form-label">Location / Description</label>
+          <input class="form-input" id="f-location" placeholder="e.g. Roof – Unit 3, Mechanical Room B">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea class="form-textarea" id="f-notes" placeholder="Condition, observations, action items…"></textarea>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-success btn-full" onclick="saveAsset()">💾 Save Asset to Survey</button>
+    <button class="btn btn-outline btn-full mt-8" onclick="resetSurvey()">＋ Survey Another Asset</button>
+  </div>
+
+</div>
+
+<!-- ══════════════ ASSETS ══════════════ -->
+<div class="section" id="section-assets">
+  <div class="search-bar">
+    <input class="search-input" id="searchInput" type="search" placeholder="🔎  Search by make, model, serial, location…" oninput="filterAssets()">
+  </div>
+  <div class="asset-count" id="assetCount"></div>
+  <div id="assetList"></div>
+  <div class="empty-state" id="emptyState" style="display:none">
+    <div class="empty-icon">📦</div>
+    <p>No assets yet</p>
+    <small>Survey an equipment tag to get started</small>
+  </div>
+</div>
+
+<!-- ══════════════ SETTINGS MODAL ══════════════ -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⚙️ Settings <button class="modal-close" onclick="closeSettings()">✕</button></div>
+    <div class="modal-body">
+      <div class="alert alert-info" style="margin-bottom:16px">
+        🔒 Your API key is saved only in <strong>this browser</strong> — it's sent directly to Anthropic's servers and never anywhere else.
+      </div>
+      <div class="form-group">
+        <label class="form-label">Anthropic API Key</label>
+        <input type="password" class="form-input" id="apiKeyInput" placeholder="sk-ant-api03-…" autocomplete="off" spellcheck="false">
+      </div>
+      <div style="margin-bottom:16px">
+        <a href="https://console.anthropic.com/settings/keys" target="_blank" style="font-size:13px;color:var(--blue);text-decoration:none;font-weight:600">
+          Get your key at console.anthropic.com →
+        </a>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="saveSettings()" style="margin-bottom:8px">Save API Key</button>
+      <button class="btn btn-outline btn-full" onclick="closeSettings()">Cancel</button>
+      <div style="height:8px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ EDIT MODAL ══════════════ -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">✏️ Edit Asset <button class="modal-close" onclick="closeEditModal()">✕</button></div>
+    <div class="modal-body" id="editModalBody"></div>
+  </div>
+</div>
+
+<!-- ══════════════ INSTALL INSTRUCTIONS MODAL ══════════════ -->
+<div class="modal-overlay" id="installModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📲 Add to Home Screen <button class="modal-close" onclick="closeInstallModal()">✕</button></div>
+    <div class="modal-body">
+      <p style="font-size:14px;color:var(--text-muted);margin-bottom:16px">Follow these steps in <strong>Safari</strong> on your iPhone or iPad to install Asset Survey as an app on your home screen:</p>
+
+      <div class="install-step">
+        <div class="install-step-num">1</div>
+        <div class="install-step-text">Open this page in <strong>Safari</strong> (not Chrome or another browser)</div>
+      </div>
+      <div class="install-step">
+        <div class="install-step-num">2</div>
+        <div class="install-step-text">Tap the <strong>Share button</strong> <span class="install-share-icon">↑</span> at the bottom of the screen</div>
+      </div>
+      <div class="install-step">
+        <div class="install-step-num">3</div>
+        <div class="install-step-text">Scroll down and tap <strong>"Add to Home Screen"</strong></div>
+      </div>
+      <div class="install-step">
+        <div class="install-step-num">4</div>
+        <div class="install-step-text">Tap <strong>"Add"</strong> in the top right corner</div>
+      </div>
+
+      <div class="alert alert-success mt-12">
+        ✅ The app icon will appear on your home screen. It opens full-screen with no browser chrome — just like a native app.
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="closeInstallModal()" style="margin-bottom:8px;margin-top:8px">Got it!</button>
+      <div style="height:8px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ IMAGE VIEWER ══════════════ -->
+<div class="img-viewer" id="imgViewer">
+  <button class="img-viewer-close" onclick="closeImgViewer()">✕</button>
+  <img id="viewerImg" src="" alt="">
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════ CONFIG ══════════════
+const ANTHROPIC_API = 'https://api.anthropic.com/v1/messages';
+const MODEL = 'claude-sonnet-4-6';
+
+// ══════════════ API KEY ══════════════
+function getApiKey() { return localStorage.getItem('anthropic_api_key') || ''; }
+function setApiKey(k) { localStorage.setItem('anthropic_api_key', k.trim()); }
+
+function updateKeyIndicator() {
+  const el = document.getElementById('keyIndicator');
+  if (getApiKey()) {
+    el.className = 'key-indicator key-set';
+    el.textContent = '✓ API Key Set';
+  } else {
+    el.className = 'key-indicator key-missing';
+    el.textContent = '⚠️ No API Key';
+  }
+}
+
+// ══════════════ INDEXED DB ══════════════
+const DB = {
+  _db: null,
+
+  async init() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open('AssetSurveyDB', 1);
+      req.onupgradeneeded = e => {
+        e.target.result.createObjectStore('assets', { keyPath: 'id' });
+      };
+      req.onsuccess = e => { this._db = e.target.result; resolve(); };
+      req.onerror = e => reject(e.target.error);
+    });
+  },
+
+  async getAll() {
+    return new Promise((resolve, reject) => {
+      const tx = this._db.transaction('assets', 'readonly');
+      const req = tx.objectStore('assets').getAll();
+      req.onsuccess = () => resolve(req.result.sort((a, b) => b.timestamp.localeCompare(a.timestamp)));
+      req.onerror = e => reject(e.target.error);
+    });
+  },
+
+  async put(asset) {
+    return new Promise((resolve, reject) => {
+      const tx = this._db.transaction('assets', 'readwrite');
+      const req = tx.objectStore('assets').put(asset);
+      req.onsuccess = () => resolve();
+      req.onerror = e => reject(e.target.error);
+    });
+  },
+
+  async delete(id) {
+    return new Promise((resolve, reject) => {
+      const tx = this._db.transaction('assets', 'readwrite');
+      const req = tx.objectStore('assets').delete(id);
+      req.onsuccess = () => resolve();
+      req.onerror = e => reject(e.target.error);
+    });
+  }
+};
+
+// ══════════════ ANTHROPIC API ══════════════
+async function callClaude(messages, maxTokens = 512) {
+  const key = getApiKey();
+  if (!key) throw new Error('No API key set. Tap ⚙️ to add your Anthropic API key.');
+
+  const res = await fetch(ANTHROPIC_API, {
+    method: 'POST',
+    headers: {
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, messages })
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const msg = err.error?.message || `API error ${res.status}`;
+    if (res.status === 401) throw new Error('Invalid API key. Check your key in ⚙️ Settings.');
+    throw new Error(msg);
+  }
+
+  const data = await res.json();
+  return data.content[0].text.trim();
+}
+
+function parseJSON(text, fallback = {}) {
+  try {
+    const m = text.match(/\{[\s\S]*\}/);
+    return m ? { ...fallback, ...JSON.parse(m[0]) } : fallback;
+  } catch { return fallback; }
+}
+
+async function analyzeTagImage(base64, mimeType) {
+  const text = await callClaude([{
+    role: 'user',
+    content: [
+      { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
+      { type: 'text', text: `You are analyzing an equipment identification tag or nameplate photo taken in the field during a building asset survey.
+
+Extract these fields:
+- make: Manufacturer or brand name
+- modelNumber: Model number or model name
+- serialNumber: Serial number
+- equipmentType: Equipment type (e.g. "rooftop HVAC unit", "boiler", "chiller", "pump", "air handler", "cooling tower", "treadmill", "elevator", etc.)
+
+Return ONLY valid JSON with exactly these keys. Use "" if a field is not visible or legible.
+Example: {"make":"Carrier","modelNumber":"50XC-060","serialNumber":"2319G12345","equipmentType":"rooftop HVAC unit"}` }
+    ]
+  }], 512);
+  return parseJSON(text, { make: '', modelNumber: '', serialNumber: '', equipmentType: '' });
+}
+
+async function getEquipmentInfo(make, model, equipmentType, searchContext) {
+  const ctxLine = searchContext
+    ? `Web search context: ${searchContext.slice(0, 1000)}\n\n`
+    : '';
+  const text = await callClaude([{
+    role: 'user',
+    content: `${ctxLine}Equipment — Make: ${make || 'Unknown'}, Model: ${model || 'Unknown'}, Type: ${equipmentType || 'Unknown'}
+
+Based on this information and your knowledge:
+1. yearOfService: The approximate year this specific model was introduced or the likely year of installation (e.g., "2018" or "2015–2020 range")
+2. estimatedLifecycle: Typical operational lifespan for this equipment type (e.g., "15–20 years" or "20–25 years")
+
+Return ONLY valid JSON: {"yearOfService":"","estimatedLifecycle":""}
+Always provide reasonable estimates — never leave fields empty.`
+  }], 256);
+  return parseJSON(text, { yearOfService: '', estimatedLifecycle: '' });
+}
+
+// ══════════════ DUCKDUCKGO SEARCH ══════════════
+async function searchDDG(query) {
+  try {
+    const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return '';
+    const d = await res.json();
+    return [d.AbstractText, d.Answer, ...(d.RelatedTopics || []).slice(0, 3).map(t => t.Text)]
+      .filter(Boolean).join(' ');
+  } catch { return ''; }
+}
+
+// ══════════════ IMAGE UTILS ══════════════
+function resizeImage(file, maxDim = 1600) {
+  return new Promise(resolve => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const { width, height } = img;
+      if (width <= maxDim && height <= maxDim) { resolve(file); return; }
+      const scale = Math.min(maxDim / width, maxDim / height);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(width * scale);
+      canvas.height = Math.round(height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(b => resolve(new File([b], file.name, { type: 'image/jpeg' })), 'image/jpeg', 0.88);
+    };
+    img.src = url;
+  });
+}
+
+function fileToBase64(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result.split(',')[1]);
+    reader.readAsDataURL(file);
+  });
+}
+
+// ══════════════ STATE ══════════════
+let currentFile = null;
+let currentBlob = null;
+let allAssets = [];
+let editingId = null;
+const objUrls = new Map();
+
+function makeId() {
+  return crypto.randomUUID ? crypto.randomUUID()
+    : ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+}
+
+// ══════════════ TABS ══════════════
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('section-' + tab).classList.add('active');
+  if (tab === 'assets') loadAssets();
+}
+
+// ══════════════ TOAST ══════════════
+function showToast(msg, ms = 2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), ms);
+}
+
+// ══════════════ CAPTURE ══════════════
+function triggerCapture() { document.getElementById('fileInput').click(); }
+
+async function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const resized = await resizeImage(file);
+  currentFile = resized;
+  currentBlob = resized;
+  const url = URL.createObjectURL(resized);
+  const img = document.getElementById('previewImg');
+  img.src = url;
+  img.style.display = 'block';
+  document.getElementById('capturePlaceholder').style.display = 'none';
+  document.getElementById('clearBtn').style.display = 'inline-flex';
+  document.getElementById('analyzeBtn').disabled = false;
+  document.getElementById('resultsSection').style.display = 'none';
+}
+
+function clearCapture() {
+  currentFile = null; currentBlob = null;
+  const img = document.getElementById('previewImg');
+  if (img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
+  img.src = ''; img.style.display = 'none';
+  document.getElementById('capturePlaceholder').style.display = 'block';
+  document.getElementById('clearBtn').style.display = 'none';
+  document.getElementById('analyzeBtn').disabled = true;
+  document.getElementById('fileInput').value = '';
+  document.getElementById('resultsSection').style.display = 'none';
+}
+
+// ══════════════ ANALYZE ══════════════
+async function analyzeImage() {
+  if (!currentFile) return;
+  if (!getApiKey()) { openSettings(); return; }
+
+  const spinner = document.getElementById('spinnerWrap');
+  const analyzeBtn = document.getElementById('analyzeBtn');
+  const label = document.getElementById('spinnerLabel');
+  const steps = document.getElementById('spinnerSteps');
+
+  spinner.classList.add('visible');
+  analyzeBtn.disabled = true;
+  document.getElementById('resultsSection').style.display = 'none';
+  document.getElementById('aiAlert').innerHTML = '';
+
+  const msgs = [
+    ['Reading tag with Claude Vision…', 'Sending image to claude-sonnet-4-6'],
+    ['Identifying equipment…', 'Extracting make, model & serial number'],
+    ['Searching equipment database…', 'Querying DuckDuckGo for specifications'],
+    ['Estimating lifecycle…', 'Calculating service life data']
+  ];
+  let step = 0;
+  const ticker = setInterval(() => {
+    if (step < msgs.length) { label.textContent = msgs[step][0]; steps.textContent = msgs[step][1]; step++; }
+  }, 2000);
+
+  try {
+    const base64 = await fileToBase64(currentFile);
+    const mimeType = currentFile.type || 'image/jpeg';
+
+    const extracted = await analyzeTagImage(base64, mimeType);
+
+    const searchQuery = [extracted.make, extracted.modelNumber, extracted.equipmentType, 'specifications lifespan year'].filter(Boolean).join(' ');
+    const searchContext = await searchDDG(searchQuery);
+
+    const info = await getEquipmentInfo(extracted.make, extracted.modelNumber, extracted.equipmentType, searchContext);
+
+    clearInterval(ticker);
+    spinner.classList.remove('visible');
+
+    populateForm({ ...extracted, ...info });
+    document.getElementById('resultsSection').style.display = 'block';
+    document.getElementById('aiAlert').innerHTML =
+      `<div class="alert alert-success">✅ AI extracted tag data. Review and correct any fields below.</div>`;
+
+  } catch (err) {
+    clearInterval(ticker);
+    spinner.classList.remove('visible');
+    analyzeBtn.disabled = false;
+    document.getElementById('resultsSection').style.display = 'block';
+    document.getElementById('aiAlert').innerHTML =
+      `<div class="alert alert-error">⚠️ ${err.message}</div>`;
+  }
+}
+
+function populateForm(data) {
+  ['equipmentType','make','modelNumber','serialNumber','yearOfService','estimatedLifecycle','location','notes']
+    .forEach(f => { const el = document.getElementById('f-' + f); if (el) el.value = data[f] || ''; });
+}
+
+function getFormData() {
+  return ['equipmentType','make','modelNumber','serialNumber','yearOfService','estimatedLifecycle','location','notes']
+    .reduce((o, f) => { o[f] = document.getElementById('f-' + f)?.value.trim() || ''; return o; }, {});
+}
+
+// ══════════════ SAVE ASSET ══════════════
+async function saveAsset() {
+  const data = getFormData();
+  if (!data.make && !data.modelNumber && !data.serialNumber) {
+    showToast('⚠️ Fill in at least one field'); return;
+  }
+  try {
+    const asset = {
+      id: makeId(),
+      timestamp: new Date().toISOString(),
+      ...data,
+      imageBlob: currentBlob || null
+    };
+    await DB.put(asset);
+    showToast('✅ Asset saved!');
+    updateBadge();
+    resetSurvey();
+    switchTab('assets');
+  } catch (err) {
+    showToast('❌ ' + err.message);
+  }
+}
+
+function resetSurvey() {
+  clearCapture();
+  populateForm({});
+  document.getElementById('aiAlert').innerHTML = '';
+}
+
+// ══════════════ ASSETS LIST ══════════════
+async function loadAssets() {
+  try {
+    allAssets = await DB.getAll();
+    renderAssets(allAssets);
+    updateBadge();
+  } catch (err) { showToast('❌ Failed to load assets'); }
+}
+
+function updateBadge() {
+  DB.getAll().then(assets => {
+    const b = document.getElementById('assetBadge');
+    if (assets.length) { b.textContent = assets.length; b.classList.add('show'); }
+    else b.classList.remove('show');
+  }).catch(() => {});
+}
+
+function filterAssets() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const filtered = q
+    ? allAssets.filter(a => [a.make, a.modelNumber, a.serialNumber, a.equipmentType, a.location, a.notes].some(v => (v||'').toLowerCase().includes(q)))
+    : allAssets;
+  renderAssets(filtered);
+}
+
+function getObjUrl(asset) {
+  if (!asset.imageBlob) return null;
+  if (!objUrls.has(asset.id)) objUrls.set(asset.id, URL.createObjectURL(asset.imageBlob));
+  return objUrls.get(asset.id);
+}
+
+function renderAssets(assets) {
+  const list = document.getElementById('assetList');
+  const empty = document.getElementById('emptyState');
+  const count = document.getElementById('assetCount');
+
+  if (!assets.length) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    count.textContent = '';
+    return;
+  }
+  empty.style.display = 'none';
+  count.textContent = `${assets.length} asset${assets.length !== 1 ? 's' : ''}`;
+
+  list.innerHTML = assets.map(a => {
+    const imgUrl = getObjUrl(a);
+    const dateStr = new Date(a.timestamp).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+    const thumb = imgUrl
+      ? `<img class="asset-thumb" src="${imgUrl}" alt="tag" onclick="viewImage('${imgUrl}',event)" loading="lazy">`
+      : `<div class="asset-thumb-placeholder">⚙️</div>`;
+
+    return `
+    <div class="asset-card">
+      <div class="asset-card-top" onclick="toggleExpand('${a.id}')">
+        ${thumb}
+        <div class="asset-info">
+          <div class="asset-make">${esc(a.make) || 'Unknown Make'}</div>
+          <div class="asset-model">${esc(a.modelNumber) || '—'}</div>
+          <div class="asset-serial">S/N: ${esc(a.serialNumber) || '—'}</div>
+          <div class="asset-tags">
+            ${a.equipmentType ? `<span class="tag tag-blue">${esc(a.equipmentType)}</span>` : ''}
+            ${a.yearOfService ? `<span class="tag tag-teal">${esc(a.yearOfService)}</span>` : ''}
+            ${a.estimatedLifecycle ? `<span class="tag tag-amber">${esc(a.estimatedLifecycle)}</span>` : ''}
+          </div>
+        </div>
+        <span class="badge-chevron" id="chev-${a.id}">⌄</span>
+      </div>
+      <div class="asset-expand" id="exp-${a.id}">
+        <div class="form-row">
+          <div><span class="form-label">Location</span><div style="font-size:14px;margin-top:3px">${esc(a.location) || '—'}</div></div>
+          <div><span class="form-label">Added</span><div style="font-size:14px;margin-top:3px">${dateStr}</div></div>
+        </div>
+        ${a.notes ? `<div class="mt-8"><span class="form-label">Notes</span><div style="font-size:14px;margin-top:4px">${esc(a.notes)}</div></div>` : ''}
+        <div class="asset-actions">
+          <button class="btn btn-outline" style="flex:1;min-height:44px;font-size:14px" onclick="openEditModal('${a.id}')">✏️ Edit</button>
+          <button class="btn btn-danger" style="min-height:44px;padding:10px 16px;font-size:14px" onclick="deleteAsset('${a.id}')">🗑️</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function esc(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toggleExpand(id) {
+  document.getElementById('exp-' + id).classList.toggle('open');
+  document.getElementById('chev-' + id).classList.toggle('open');
+}
+
+// ══════════════ IMAGE VIEWER ══════════════
+function viewImage(src, e) {
+  if (e) e.stopPropagation();
+  document.getElementById('viewerImg').src = src;
+  document.getElementById('imgViewer').classList.add('open');
+}
+function closeImgViewer() { document.getElementById('imgViewer').classList.remove('open'); }
+
+// ══════════════ EDIT MODAL ══════════════
+function openEditModal(id) {
+  editingId = id;
+  const a = allAssets.find(x => x.id === id);
+  if (!a) return;
+  const imgUrl = getObjUrl(a);
+  document.getElementById('editModalBody').innerHTML = `
+    ${imgUrl ? `<img src="${imgUrl}" style="width:100%;border-radius:10px;margin-bottom:14px;max-height:200px;object-fit:contain;background:#f0f4f8;cursor:zoom-in" onclick="viewImage('${imgUrl}')">` : ''}
+    <div class="form-group"><label class="form-label">Equipment Type</label><input class="form-input" id="e-equipmentType" value="${esc(a.equipmentType)}"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Make</label><input class="form-input" id="e-make" value="${esc(a.make)}"></div>
+      <div class="form-group"><label class="form-label">Model Number</label><input class="form-input" id="e-modelNumber" value="${esc(a.modelNumber)}"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Serial Number</label><input class="form-input" id="e-serialNumber" value="${esc(a.serialNumber)}"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Year of Service</label><input class="form-input" id="e-yearOfService" value="${esc(a.yearOfService)}"></div>
+      <div class="form-group"><label class="form-label">Est. Lifecycle</label><input class="form-input" id="e-estimatedLifecycle" value="${esc(a.estimatedLifecycle)}"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Location</label><input class="form-input" id="e-location" value="${esc(a.location)}"></div>
+    <div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" id="e-notes">${esc(a.notes)}</textarea></div>
+    <button class="btn btn-success btn-full" onclick="saveEdit()" style="margin-bottom:8px">💾 Save Changes</button>
+    <button class="btn btn-outline btn-full" onclick="closeEditModal()">Cancel</button>
+    <div style="height:8px"></div>
+  `;
+  document.getElementById('editModal').classList.add('open');
+}
+
+function closeEditModal() {
+  document.getElementById('editModal').classList.remove('open');
+  editingId = null;
+}
+
+async function saveEdit() {
+  if (!editingId) return;
+  const a = allAssets.find(x => x.id === editingId);
+  if (!a) return;
+  const fields = ['equipmentType','make','modelNumber','serialNumber','yearOfService','estimatedLifecycle','location','notes'];
+  const updated = { ...a };
+  fields.forEach(f => { updated[f] = document.getElementById('e-' + f)?.value.trim() || ''; });
+  try {
+    await DB.put(updated);
+    showToast('✅ Asset updated');
+    closeEditModal();
+    loadAssets();
+  } catch (err) { showToast('❌ ' + err.message); }
+}
+
+async function deleteAsset(id) {
+  if (!confirm('Delete this asset? This cannot be undone.')) return;
+  try {
+    await DB.delete(id);
+    if (objUrls.has(id)) { URL.revokeObjectURL(objUrls.get(id)); objUrls.delete(id); }
+    showToast('🗑️ Asset deleted');
+    loadAssets();
+  } catch (err) { showToast('❌ ' + err.message); }
+}
+
+// ══════════════ EXCEL EXPORT ══════════════
+async function exportExcel() {
+  const assets = await DB.getAll();
+  if (!assets.length) { showToast('No assets to export yet'); return; }
+
+  const rows = assets.map((a, i) => ({
+    '#': i + 1,
+    'Date Added': new Date(a.timestamp).toLocaleDateString('en-US'),
+    'Equipment Type': a.equipmentType || '',
+    'Make': a.make || '',
+    'Model Number': a.modelNumber || '',
+    'Serial Number': a.serialNumber || '',
+    'Year of Service': a.yearOfService || '',
+    'Est. Lifecycle': a.estimatedLifecycle || '',
+    'Location': a.location || '',
+    'Notes': a.notes || '',
+    'Has Photo': a.imageBlob ? 'Yes' : 'No'
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [
+    {wch:4},{wch:12},{wch:20},{wch:16},{wch:20},{wch:20},{wch:16},{wch:16},{wch:22},{wch:32},{wch:10}
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Equipment Assets');
+
+  const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `equipment-assets-${new Date().toISOString().slice(0,10)}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('⬇️ Excel file downloading…');
+}
+
+// ══════════════ SETTINGS ══════════════
+function openSettings() {
+  document.getElementById('apiKeyInput').value = getApiKey();
+  document.getElementById('settingsModal').classList.add('open');
+}
+function closeSettings() { document.getElementById('settingsModal').classList.remove('open'); }
+function saveSettings() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key) { showToast('⚠️ Please enter your API key'); return; }
+  setApiKey(key);
+  updateKeyIndicator();
+  closeSettings();
+  showToast('✅ API key saved');
+}
+
+// ══════════════ INSTALL (HOME SCREEN) ══════════════
+function showInstallModal() {
+  document.getElementById('installBanner').style.display = 'none';
+  document.getElementById('installModal').classList.add('open');
+}
+function closeInstallModal() { document.getElementById('installModal').classList.remove('open'); }
+function dismissBanner() {
+  document.getElementById('installBanner').style.display = 'none';
+  localStorage.setItem('install_dismissed', '1');
+}
+
+function checkInstallBanner() {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isStandalone = window.navigator.standalone === true;
+  const dismissed = localStorage.getItem('install_dismissed');
+  if (isIOS && !isStandalone && !dismissed) {
+    document.getElementById('installBanner').style.display = 'flex';
+  }
+}
+
+// Close modals on overlay tap
+['settingsModal','editModal','installModal'].forEach(id => {
+  document.getElementById(id).addEventListener('click', e => { if (e.target.id === id) document.getElementById(id).classList.remove('open'); });
+});
+document.getElementById('imgViewer').addEventListener('click', e => { if (e.target.id === 'imgViewer') closeImgViewer(); });
+
+// ══════════════ INIT ══════════════
+DB.init().then(() => {
+  updateKeyIndicator();
+  updateBadge();
+  checkInstallBanner();
+  if (!getApiKey()) {
+    setTimeout(() => openSettings(), 600);
+  }
+}).catch(err => showToast('❌ Storage error: ' + err.message));
+</script>
+</body>
+</html>
