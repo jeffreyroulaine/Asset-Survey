@@ -329,6 +329,12 @@
     <div class="modal-handle"></div>
     <div class="modal-title">⚙️ Settings <button class="modal-close" onclick="closeSettings()">✕</button></div>
     <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Building / Property Name</label>
+        <input class="form-input" id="propertyNameInput" placeholder="e.g. Cityview Towers, 123 Main Street">
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Appears in the title of your exported spreadsheet</div>
+      </div>
+      <div class="divider"></div>
       <div class="alert alert-info" style="margin-bottom:16px">
         🔒 Your API key is saved only in <strong>this browser</strong> — it's sent directly to Anthropic's servers and never anywhere else.
       </div>
@@ -341,7 +347,7 @@
           Get your key at console.anthropic.com →
         </a>
       </div>
-      <button class="btn btn-primary btn-full" onclick="saveSettings()" style="margin-bottom:8px">Save API Key</button>
+      <button class="btn btn-primary btn-full" onclick="saveSettings()" style="margin-bottom:8px">Save Settings</button>
       <button class="btn btn-outline btn-full" onclick="closeSettings()">Cancel</button>
       <div style="height:8px"></div>
     </div>
@@ -943,126 +949,232 @@ async function exportExcel() {
   const assets = await DB.getAll();
   if (!assets.length) { showToast('No assets to export yet'); return; }
 
+  const propName    = getPropertyName() || 'Equipment Asset Survey';
+  const dateStr     = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
   const currentYear = new Date().getFullYear();
   const projYears   = Array.from({ length: 11 }, (_, i) => currentYear + i);
   const wb = XLSX.utils.book_new();
 
-  // ── Sheet 1: Asset Inventory ──────────────────────────────────
-  const inventoryRows = assets.map((a, i) => {
-    const { age, remLife, replYear, priority } = calcAssetProjection(a);
-    const cost = parseCost(a.replacementCost);
-    return {
-      '#':                    i + 1,
-      'Survey Date':          new Date(a.timestamp).toLocaleDateString('en-US'),
-      'Equipment Type':       a.equipmentType || '',
-      'Make':                 a.make || '',
-      'Model Number':         a.modelNumber || '',
-      'Serial Number':        a.serialNumber || '',
-      'Location':             a.location || '',
-      'Year of Service':      a.yearOfService || '',
-      'Est. Lifecycle':       a.estimatedLifecycle || '',
-      'Age (yrs)':            age !== null ? age : '',
-      'Remaining Life (yrs)': remLife !== null ? remLife : '',
-      'Replace By Year':      replYear || '',
-      'Priority':             priority,
-      'Est. Replacement Cost': cost !== null ? cost : (a.replacementCost || ''),
-      'Notes':                a.notes || '',
-      'Has Photo':            a.imageBlob ? 'Yes' : 'No'
-    };
-  });
+  // ── Style definitions ───────────────────────────────────────
+  const NAVY  = '0F4C75';
+  const BLUE  = '1B6CA8';
+  const WHITE = 'FFFFFF';
+  const LIGHT = 'EBF5FB';
+  const ALT   = 'F5F8FA';
+  const TOTAL_BG = 'DBEAFE';
 
-  const ws1 = XLSX.utils.json_to_sheet(inventoryRows);
-  ws1['!cols'] = [
-    {wch:4},{wch:12},{wch:20},{wch:16},{wch:20},{wch:20},{wch:22},
-    {wch:14},{wch:16},{wch:10},{wch:18},{wch:14},{wch:14},{wch:22},{wch:32},{wch:10}
-  ];
-  // Format cost column as currency (column N = index 13)
-  const costColLetter = 'N';
-  for (let r = 2; r <= inventoryRows.length + 1; r++) {
-    const cell = ws1[`${costColLetter}${r}`];
-    if (cell && typeof cell.v === 'number') cell.z = '$#,##0';
+  const S = {
+    titleLeft: { font:{bold:true,sz:15,color:{rgb:WHITE},name:'Calibri'}, fill:{fgColor:{rgb:NAVY},patternType:'solid'}, alignment:{horizontal:'left',vertical:'center',indent:1} },
+    titleRight:{ font:{bold:false,sz:10,color:{rgb:'80C4E9'},name:'Calibri'}, fill:{fgColor:{rgb:NAVY},patternType:'solid'}, alignment:{horizontal:'right',vertical:'center',indent:1} },
+    sub:       { font:{sz:9,italic:true,color:{rgb:'4A6080'},name:'Calibri'}, fill:{fgColor:{rgb:LIGHT},patternType:'solid'}, alignment:{horizontal:'left',vertical:'center',indent:1} },
+    subRight:  { font:{sz:9,italic:true,color:{rgb:'4A6080'},name:'Calibri'}, fill:{fgColor:{rgb:LIGHT},patternType:'solid'}, alignment:{horizontal:'right',vertical:'center',indent:1} },
+    header:    { font:{bold:true,sz:9,color:{rgb:WHITE},name:'Calibri'}, fill:{fgColor:{rgb:BLUE},patternType:'solid'}, alignment:{horizontal:'center',vertical:'center',wrapText:true}, border:{bottom:{style:'medium',color:{rgb:NAVY}}} },
+    even:      { font:{sz:10,name:'Calibri'}, fill:{fgColor:{rgb:ALT},patternType:'solid'},   alignment:{vertical:'center'} },
+    odd:       { font:{sz:10,name:'Calibri'}, fill:{fgColor:{rgb:WHITE},patternType:'solid'}, alignment:{vertical:'center'} },
+    total:     { font:{bold:true,sz:10,color:{rgb:NAVY},name:'Calibri'}, fill:{fgColor:{rgb:TOTAL_BG},patternType:'solid'}, alignment:{vertical:'center'}, border:{top:{style:'medium',color:{rgb:BLUE}}} },
+    totalR:    { font:{bold:true,sz:10,color:{rgb:NAVY},name:'Calibri'}, fill:{fgColor:{rgb:TOTAL_BG},patternType:'solid'}, alignment:{horizontal:'right',vertical:'center'}, border:{top:{style:'medium',color:{rgb:BLUE}}} },
+    center:    (base) => ({...base, alignment:{...base.alignment,horizontal:'center',vertical:'center'}}),
+    right:     (base) => ({...base, alignment:{...base.alignment,horizontal:'right',vertical:'center'}}),
+  };
+  const PS = {
+    'REPLACE NOW': { font:{bold:true,sz:10,color:{rgb:'C62828'},name:'Calibri'}, fill:{fgColor:{rgb:'FFCDD2'},patternType:'solid'}, alignment:{horizontal:'center',vertical:'center'} },
+    'CRITICAL':    { font:{bold:true,sz:10,color:{rgb:'C62828'},name:'Calibri'}, fill:{fgColor:{rgb:'FFEBEE'},patternType:'solid'}, alignment:{horizontal:'center',vertical:'center'} },
+    'HIGH':        { font:{bold:true,sz:10,color:{rgb:'E65100'},name:'Calibri'}, fill:{fgColor:{rgb:'FFF3E0'},patternType:'solid'}, alignment:{horizontal:'center',vertical:'center'} },
+    'MEDIUM':      { font:{bold:true,sz:10,color:{rgb:'B07D00'},name:'Calibri'}, fill:{fgColor:{rgb:'FFFDE7'},patternType:'solid'}, alignment:{horizontal:'center',vertical:'center'} },
+    'LOW':         { font:{sz:10,color:{rgb:'2E7D32'},name:'Calibri'},           fill:{fgColor:{rgb:'E8F5E9'},patternType:'solid'}, alignment:{horizontal:'center',vertical:'center'} },
+    'Unknown':     { font:{sz:10,color:{rgb:'607080'},name:'Calibri'},           fill:{fgColor:{rgb:'F5F5F5'},patternType:'solid'}, alignment:{horizontal:'center',vertical:'center'} },
+  };
+
+  // ── Helpers ─────────────────────────────────────────────────
+  function sc(ws, r, c, style) {
+    const ref = XLSX.utils.encode_cell({r, c});
+    if (!ws[ref]) ws[ref] = {v:'', t:'s'};
+    ws[ref].s = style;
   }
+  function sr(ws, r, numCols, style) {
+    for (let c = 0; c < numCols; c++) sc(ws, r, c, style);
+  }
+  function setCurrency(ws, r, c, baseStyle) {
+    const ref = XLSX.utils.encode_cell({r, c});
+    if (ws[ref]) { ws[ref].s = S.right(baseStyle); ws[ref].z = '$#,##0'; }
+  }
+  function setNumber(ws, r, c, baseStyle) {
+    const ref = XLSX.utils.encode_cell({r, c});
+    if (ws[ref]) { ws[ref].s = S.center(baseStyle); }
+  }
+  // Title block: rows 0=header bar, 1=subtitle bar, 2=blank, 3=col headers
+  // Returns the first data row index (4)
+  function addTitleBlock(ws, title, subtitle, numCols) {
+    // Fill background across all title/subtitle columns
+    for (let c = 0; c < numCols; c++) {
+      sc(ws, 0, c, c < numCols - 1 ? S.titleLeft : S.titleRight);
+      sc(ws, 1, c, c < numCols - 1 ? S.sub : S.subRight);
+    }
+    // Overwrite text cells (already set by aoa_to_sheet, just re-style)
+    sc(ws, 0, 0, S.titleLeft);
+    sc(ws, 1, 0, S.sub);
+    ws['!merges'] = [
+      {s:{r:0,c:0}, e:{r:0,c:numCols-2}},
+      {s:{r:1,c:0}, e:{r:1,c:numCols-1}},
+    ];
+    if (!ws['!rows']) ws['!rows'] = [];
+    ws['!rows'][0] = {hpt:32};
+    ws['!rows'][1] = {hpt:18};
+    ws['!rows'][2] = {hpt:6};
+    ws['!rows'][3] = {hpt:36};
+    return 4;
+  }
+
+  // ── Sheet 1: Asset Inventory ─────────────────────────────────
+  const invCols = [
+    {h:'#',              wch:4},  {h:'Survey Date',     wch:12},
+    {h:'Equipment Type', wch:20}, {h:'Make',            wch:14},
+    {h:'Model Number',   wch:18}, {h:'Serial Number',   wch:18},
+    {h:'Location',       wch:22}, {h:'Year of\nService',wch:10},
+    {h:'Est.\nLifecycle',wch:12}, {h:'Age\n(yrs)',      wch:8},
+    {h:'Remaining\nLife',wch:12}, {h:'Replace\nYear',   wch:10},
+    {h:'Priority',       wch:14}, {h:'Est. Replacement\nCost', wch:18},
+    {h:'Notes',          wch:32}, {h:'Photo',           wch:7}
+  ];
+  const knownCost = assets.reduce((s,a)=>s+(parseCost(a.replacementCost)||0),0);
+  const inv1 = [
+    [propName + '  —  Capital Expenditure Asset Inventory', ...Array(invCols.length-2).fill(''), `${assets.length} Assets`],
+    [`Generated: ${dateStr}   |   Known Replacement Cost Total: ${knownCost>0?'$'+knownCost.toLocaleString():'TBD'}`, ...Array(invCols.length-1).fill('')],
+    Array(invCols.length).fill(''),
+    invCols.map(c=>c.h),
+    ...assets.map((a,i)=>{
+      const {age,remLife,replYear,priority}=calcAssetProjection(a); const cost=parseCost(a.replacementCost);
+      return [i+1, new Date(a.timestamp).toLocaleDateString('en-US'), a.equipmentType||'', a.make||'', a.modelNumber||'', a.serialNumber||'', a.location||'', a.yearOfService||'', a.estimatedLifecycle||'', age??'', remLife??'', replYear||'', priority, cost!==null?cost:(a.replacementCost||''), a.notes||'', a.imageBlob?'Yes':''];
+    }),
+    ['','TOTALS',`${assets.length} assets`,'','','','','','','','','','', knownCost>0?knownCost:'','','']
+  ];
+  const ws1 = XLSX.utils.aoa_to_sheet(inv1);
+  ws1['!cols'] = invCols.map(c=>({wch:c.wch}));
+  addTitleBlock(ws1, inv1[0][0], inv1[1][0], invCols.length);
+  invCols.forEach((_,c)=>sc(ws1,3,c,S.header));
+  assets.forEach((_,i)=>{
+    const r=i+4; const base=i%2===0?S.even:S.odd;
+    const {priority}=calcAssetProjection(assets[i]);
+    invCols.forEach((_,c)=>{
+      if(c===12) sc(ws1,r,c,PS[priority]||PS['Unknown']);
+      else if(c===13) setCurrency(ws1,r,c,base);
+      else if([9,10,11].includes(c)) setNumber(ws1,r,c,base);
+      else sc(ws1,r,c,base);
+    });
+    if(!ws1['!rows']) ws1['!rows']=[];
+    ws1['!rows'][r]={hpt:20};
+  });
+  const invTotalR = assets.length+4;
+  invCols.forEach((_,c)=>{ if(c===13) setCurrency(ws1,invTotalR,c,S.total); else sc(ws1,invTotalR,c,c===1||c===2?{...S.total,font:{...S.total.font,sz:10}}:S.total); });
+  ws1['!freeze']={xSplit:0,ySplit:4};
   XLSX.utils.book_append_sheet(wb, ws1, 'Asset Inventory');
 
-  // ── Sheet 2: Capital Projection (sorted by replace year) ──────
-  const projRows = assets
-    .map(a => {
-      const { age, remLife, replYear, priority } = calcAssetProjection(a);
-      const cost = parseCost(a.replacementCost);
-      return { a, age, remLife, replYear, priority, cost };
-    })
-    .filter(x => x.replYear !== null)
-    .sort((x, y) => x.replYear - y.replYear)
-    .map(({ a, age, remLife, replYear, priority, cost }) => ({
-      'Replace Year':          replYear,
-      'Priority':              priority,
-      'Equipment Type':        a.equipmentType || '',
-      'Make':                  a.make || '',
-      'Model Number':          a.modelNumber || '',
-      'Serial Number':         a.serialNumber || '',
-      'Location':              a.location || '',
-      'Year of Service':       a.yearOfService || '',
-      'Age at Replacement':    age !== null ? age + (replYear - currentYear) : '',
-      'Est. Replacement Cost': cost !== null ? cost : (a.replacementCost || ''),
-      'Notes':                 a.notes || ''
-    }));
-
-  const ws2 = XLSX.utils.json_to_sheet(projRows.length ? projRows : [{ 'Note': 'Add Year of Service and Lifecycle to assets to generate projections' }]);
-  ws2['!cols'] = [
-    {wch:12},{wch:14},{wch:20},{wch:16},{wch:20},{wch:20},{wch:22},{wch:14},{wch:18},{wch:22},{wch:32}
+  // ── Sheet 2: Capital Projection ──────────────────────────────
+  const projItems = assets
+    .map(a=>({a,...calcAssetProjection(a),cost:parseCost(a.replacementCost)}))
+    .filter(x=>x.replYear!==null).sort((a,b)=>a.replYear-b.replYear);
+  const projTotalCost = projItems.reduce((s,x)=>s+(x.cost||0),0);
+  const projCols = [
+    {h:'Replace\nYear',wch:10},{h:'Priority',wch:14},{h:'Equipment Type',wch:20},
+    {h:'Make',wch:14},{h:'Model Number',wch:18},{h:'Serial Number',wch:18},
+    {h:'Location',wch:22},{h:'Year of\nService',wch:10},{h:'Age at\nReplace',wch:10},
+    {h:'Est. Replacement\nCost',wch:18},{h:'Notes',wch:32}
   ];
-  if (projRows.length) {
-    for (let r = 2; r <= projRows.length + 1; r++) {
-      const cell = ws2[`J${r}`];
-      if (cell && typeof cell.v === 'number') cell.z = '$#,##0';
-    }
-  }
+  const proj1 = [
+    [propName + '  —  Capital Expenditure Projection', ...Array(projCols.length-2).fill(''), `${projItems.length} Items`],
+    [`Generated: ${dateStr}   |   Sorted: Earliest Replacement First   |   Total Known Cost: ${projTotalCost>0?'$'+projTotalCost.toLocaleString():'TBD'}`, ...Array(projCols.length-1).fill('')],
+    Array(projCols.length).fill(''),
+    projCols.map(c=>c.h),
+    ...(projItems.length ? projItems.map(({a,age,replYear,priority,cost})=>[
+      replYear, priority, a.equipmentType||'', a.make||'', a.modelNumber||'', a.serialNumber||'',
+      a.location||'', a.yearOfService||'', age!==null?age+(replYear-currentYear):'',
+      cost!==null?cost:(a.replacementCost||''), a.notes||''
+    ]) : [['','','Add Year of Service & Lifecycle to assets to generate projections','','','','','','','','']]),
+    ['GRAND TOTAL','',`${projItems.length} items scheduled`,'','','','','','',projTotalCost>0?projTotalCost:'','']
+  ];
+  const ws2 = XLSX.utils.aoa_to_sheet(proj1);
+  ws2['!cols'] = projCols.map(c=>({wch:c.wch}));
+  addTitleBlock(ws2, proj1[0][0], proj1[1][0], projCols.length);
+  projCols.forEach((_,c)=>sc(ws2,3,c,S.header));
+  projItems.forEach((_,i)=>{
+    const r=i+4; const base=i%2===0?S.even:S.odd; const priority=projItems[i].priority;
+    projCols.forEach((_,c)=>{
+      if(c===1) sc(ws2,r,c,PS[priority]||PS['Unknown']);
+      else if(c===9) setCurrency(ws2,r,c,base);
+      else if([0,8].includes(c)) setNumber(ws2,r,c,base);
+      else sc(ws2,r,c,base);
+    });
+    if(!ws2['!rows']) ws2['!rows']=[];
+    ws2['!rows'][r]={hpt:20};
+  });
+  const projTR=projItems.length+4;
+  projCols.forEach((_,c)=>{ if(c===9) setCurrency(ws2,projTR,c,S.total); else sc(ws2,projTR,c,S.total); });
+  ws2['!freeze']={xSplit:0,ySplit:4};
   XLSX.utils.book_append_sheet(wb, ws2, 'Capital Projection');
 
-  // ── Sheet 3: 10-Year Summary ──────────────────────────────────
-  const summaryRows = projYears.map(yr => {
-    const items = assets.filter(a => {
-      const { replYear } = calcAssetProjection(a);
-      return replYear === yr;
-    });
-    const totalCost = items.reduce((sum, a) => {
-      const c = parseCost(a.replacementCost);
-      return sum + (c || 0);
-    }, 0);
-    const itemList = items.map(a => [a.make, a.modelNumber].filter(Boolean).join(' ') || a.equipmentType || 'Unknown').join(', ');
-    return {
-      'Year':            yr,
-      '# Items Due':     items.length,
-      'Equipment Due':   itemList || '—',
-      'Est. Total Cost': totalCost > 0 ? totalCost : (items.length ? 'Cost TBD' : '—')
+  // ── Sheet 3: 10-Year Budget Summary ──────────────────────────
+  const sumCols = [{h:'Year',wch:8},{h:'Items\nDue',wch:8},{h:'Equipment Due for Replacement',wch:52},{h:'Est. Total\nCost',wch:16},{h:'Notes',wch:18}];
+  const grandTotal = projYears.reduce((s,yr)=>s+assets.filter(a=>calcAssetProjection(a).replYear===yr).reduce((s2,a)=>s2+(parseCost(a.replacementCost)||0),0),0);
+  const sumRows = projYears.map(yr=>{
+    const items=assets.filter(a=>calcAssetProjection(a).replYear===yr);
+    const cost=items.reduce((s,a)=>s+(parseCost(a.replacementCost)||0),0);
+    const hasUnknown=items.some(a=>!parseCost(a.replacementCost));
+    return { yr, count:items.length,
+      row:[yr, items.length||'',
+        items.map(a=>[a.equipmentType,a.make,a.modelNumber].filter(Boolean).join(' – ')).join('; ')||'—',
+        cost>0?cost:(items.length?null:null),
+        hasUnknown&&cost===0?'Costs TBD':hasUnknown?'+ some TBD':''
+      ]
     };
   });
-
-  const ws3 = XLSX.utils.json_to_sheet(summaryRows);
-  ws3['!cols'] = [{wch:8},{wch:12},{wch:55},{wch:18}];
-  for (let r = 2; r <= summaryRows.length + 1; r++) {
-    const cell = ws3[`D${r}`];
-    if (cell && typeof cell.v === 'number') cell.z = '$#,##0';
-  }
+  const sum1=[
+    [propName + `  —  ${currentYear}–${currentYear+10} Capital Budget Summary`, ...Array(sumCols.length-2).fill(''), `Total: ${grandTotal>0?'$'+grandTotal.toLocaleString():'TBD'}`],
+    [`Generated: ${dateStr}   |   ${currentYear}–${currentYear+10} 10-Year Planning Horizon`, ...Array(sumCols.length-1).fill('')],
+    Array(sumCols.length).fill(''),
+    sumCols.map(c=>c.h),
+    ...sumRows.map(x=>x.row),
+    ['TOTAL', sumRows.reduce((s,x)=>s+x.count,0), `${assets.length} assets surveyed`, grandTotal>0?grandTotal:'', '']
+  ];
+  const ws3=XLSX.utils.aoa_to_sheet(sum1);
+  ws3['!cols']=sumCols.map(c=>({wch:c.wch}));
+  addTitleBlock(ws3, sum1[0][0], sum1[1][0], sumCols.length);
+  sumCols.forEach((_,c)=>sc(ws3,3,c,S.header));
+  sumRows.forEach((x,i)=>{
+    const r=i+4;
+    const hasDue = x.count>0;
+    const base = hasDue
+      ? {font:{bold:true,sz:10,name:'Calibri'},fill:{fgColor:{rgb:'EBF5FB'},patternType:'solid'},alignment:{vertical:'center'}}
+      : (i%2===0?S.even:S.odd);
+    x.row.forEach((_,c)=>{
+      if(c===3) setCurrency(ws3,r,c,base);
+      else if([0,1].includes(c)) setNumber(ws3,r,c,base);
+      else sc(ws3,r,c,base);
+    });
+    if(!ws3['!rows']) ws3['!rows']=[];
+    ws3['!rows'][r]={hpt:hasDue?22:18};
+  });
+  const sumTR=sumRows.length+4;
+  sumCols.forEach((_,c)=>{ if(c===3) setCurrency(ws3,sumTR,c,S.total); else if(c===1) sc(ws3,sumTR,c,S.center(S.total)); else sc(ws3,sumTR,c,S.total); });
+  ws3['!freeze']={xSplit:0,ySplit:4};
   XLSX.utils.book_append_sheet(wb, ws3, `${currentYear}–${currentYear+10} Summary`);
 
   // ── Download ──────────────────────────────────────────────────
-  const buf  = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+  const buf  = XLSX.write(wb, { type: 'array', bookType: 'xlsx', cellStyles: true });
   const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = `capital-projection-${new Date().toISOString().slice(0,10)}.xlsx`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  const dl   = document.createElement('a');
+  dl.href = url; dl.download = `capital-projection-${new Date().toISOString().slice(0,10)}.xlsx`;
+  document.body.appendChild(dl); dl.click(); document.body.removeChild(dl);
   URL.revokeObjectURL(url);
   showToast('⬇️ Capital projection downloading…');
 }
 
 // ══════════════ SETTINGS ══════════════
+function getPropertyName() { return localStorage.getItem('property_name') || ''; }
+
 function openSettings() {
   document.getElementById('apiKeyInput').value = getApiKey();
+  document.getElementById('propertyNameInput').value = getPropertyName();
   document.getElementById('settingsModal').classList.add('open');
 }
 function closeSettings() { document.getElementById('settingsModal').classList.remove('open'); }
@@ -1070,9 +1182,10 @@ function saveSettings() {
   const key = document.getElementById('apiKeyInput').value.trim();
   if (!key) { showToast('⚠️ Please enter your API key'); return; }
   setApiKey(key);
+  localStorage.setItem('property_name', document.getElementById('propertyNameInput').value.trim());
   updateKeyIndicator();
   closeSettings();
-  showToast('✅ API key saved');
+  showToast('✅ Settings saved');
 }
 
 // ══════════════ INSTALL (HOME SCREEN) ══════════════
