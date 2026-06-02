@@ -39,103 +39,162 @@
     .header {
       background: var(--blue-dark);
       color: white;
-      padding: calc(12px + var(--safe-top)) 16px 12px;
+      padding: calc(10px + var(--safe-top)) 14px 10px;
       position: sticky; top: 0; z-index: 100;
       display: flex; align-items: center; gap: 10px;
       box-shadow: 0 2px 8px rgba(0,0,0,.3);
     }
-    .header-icon { font-size: 26px; }
-    .header-title { font-size: 20px; font-weight: 700; letter-spacing: -.3px; }
-    .header-subtitle { font-size: 11px; opacity: .7; margin-top: 1px; }
-    .header-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+    .header-icon { font-size: 24px; }
+    .header-title { font-size: 18px; font-weight: 700; letter-spacing: -.3px; }
+    .header-right { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+
+    .session-pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
+      max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .session-pill.active { background: rgba(0,172,193,.3); color: #80deea; border: 1px solid rgba(0,172,193,.4); }
+    .session-pill.none { background: rgba(255,152,0,.2); color: #ffcc80; border: 1px solid rgba(255,152,0,.3); }
 
     .tabs { display: flex; background: var(--blue-dark); padding: 0 16px; border-top: 1px solid rgba(255,255,255,.1); }
-    .tab-btn { flex: 1; padding: 10px 8px; background: none; border: none; color: rgba(255,255,255,.6); font-size: 13px; font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; border-bottom: 3px solid transparent; transition: color .2s; }
+    .tab-btn { flex: 1; padding: 10px 8px; background: none; border: none; color: rgba(255,255,255,.6); font-size: 12px; font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; border-bottom: 3px solid transparent; transition: color .2s; }
     .tab-btn.active { color: white; border-bottom-color: var(--teal); }
-    .tab-btn .tab-icon { font-size: 18px; }
+    .tab-btn .tab-icon { font-size: 17px; }
     .tab-badge { background: var(--teal); color: white; border-radius: 10px; padding: 1px 6px; font-size: 10px; display: none; }
     .tab-badge.show { display: inline; }
 
     .section { display: none; padding: 16px; padding-bottom: calc(24px + var(--safe-bottom)); }
     .section.active { display: block; }
 
-    .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 16px; }
-    .card-header { padding: 14px 16px; background: linear-gradient(135deg, var(--blue-dark), var(--blue)); color: white; font-size: 14px; font-weight: 700; letter-spacing: .3px; display: flex; align-items: center; gap: 8px; }
-    .card-body { padding: 16px; }
+    .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 14px; }
+    .card-header { padding: 13px 16px; background: linear-gradient(135deg, var(--blue-dark), var(--blue)); color: white; font-size: 14px; font-weight: 700; letter-spacing: .3px; display: flex; align-items: center; gap: 8px; }
+    .card-body { padding: 15px; }
 
-    .capture-zone { border: 2.5px dashed var(--blue-light); border-radius: var(--radius); background: #e8f4fd; padding: 32px 20px; text-align: center; cursor: pointer; transition: all .2s; position: relative; overflow: hidden; }
+    .capture-zone { border: 2.5px dashed var(--blue-light); border-radius: var(--radius); background: #e8f4fd; padding: 28px 20px; text-align: center; cursor: pointer; transition: all .2s; position: relative; overflow: hidden; }
     .capture-zone:active { background: #d0eafa; transform: scale(.98); }
-    .capture-zone .preview-img { width: 100%; max-height: 260px; object-fit: contain; border-radius: 10px; display: none; }
+    .capture-zone .preview-img { width: 100%; max-height: 240px; object-fit: contain; border-radius: 10px; display: none; }
     .capture-zone .placeholder { pointer-events: none; }
-    .capture-icon { font-size: 52px; margin-bottom: 10px; }
-    .capture-text { font-size: 17px; font-weight: 700; color: var(--blue); }
-    .capture-sub { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+    .capture-icon { font-size: 48px; margin-bottom: 8px; }
+    .capture-text { font-size: 16px; font-weight: 700; color: var(--blue); }
+    .capture-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
     #fileInput { display: none; }
 
-    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 13px 20px; border-radius: 50px; border: none; font-size: 15px; font-weight: 700; cursor: pointer; transition: all .2s; min-height: 50px; white-space: nowrap; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 12px 18px; border-radius: 50px; border: none; font-size: 15px; font-weight: 700; cursor: pointer; transition: all .2s; min-height: 48px; white-space: nowrap; }
     .btn:active { transform: scale(.96); }
     .btn-primary { background: var(--blue); color: white; }
     .btn-primary:hover { background: var(--blue-dark); }
     .btn-success { background: var(--green); color: white; }
     .btn-danger { background: var(--red); color: white; }
-    .btn-ghost { background: rgba(255,255,255,.15); color: white; border: 1.5px solid rgba(255,255,255,.3); padding: 8px 14px; min-height: 38px; font-size: 13px; }
+    .btn-ghost { background: rgba(255,255,255,.15); color: white; border: 1.5px solid rgba(255,255,255,.3); padding: 7px 12px; min-height: 34px; font-size: 12px; }
     .btn-outline { background: white; color: var(--blue); border: 2px solid var(--blue); }
     .btn-teal { background: var(--teal); color: white; }
+    .btn-amber { background: #f57f17; color: white; }
+    .btn-sm { padding: 8px 14px; min-height: 36px; font-size: 13px; }
     .btn-full { width: 100%; }
     .btn:disabled { opacity: .45; cursor: not-allowed; transform: none !important; }
-    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
 
-    .form-group { margin-bottom: 14px; }
-    .form-label { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--text-muted); margin-bottom: 5px; }
+    .form-group { margin-bottom: 13px; }
+    .form-label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--text-muted); margin-bottom: 5px; }
     .form-input, .form-textarea { width: 100%; padding: 11px 13px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 15px; color: var(--text); background: white; transition: border-color .2s; -webkit-appearance: none; font-family: inherit; }
     .form-input:focus, .form-textarea:focus { outline: none; border-color: var(--blue-light); box-shadow: 0 0 0 3px rgba(33,150,243,.15); }
-    .form-textarea { resize: vertical; min-height: 72px; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-textarea { resize: vertical; min-height: 66px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     @media (max-width: 380px) { .form-row { grid-template-columns: 1fr; } }
 
-    .alert { padding: 12px 14px; border-radius: 10px; font-size: 14px; font-weight: 500; display: flex; align-items: flex-start; gap: 8px; margin-bottom: 14px; }
+    /* Condition buttons */
+    .condition-group { display: flex; gap: 8px; flex-wrap: wrap; }
+    .condition-btn { padding: 9px 14px; border: 2px solid var(--border); background: white; border-radius: 22px; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--text-muted); transition: all .18s; flex: 1; min-width: 80px; text-align: center; -webkit-tap-highlight-color: transparent; }
+    .condition-btn:active { transform: scale(.96); }
+    .condition-btn.sel-Good { background: #22c55e; border-color: #22c55e; color: white; }
+    .condition-btn.sel-Fair { background: #f59e0b; border-color: #f59e0b; color: white; }
+    .condition-btn.sel-Poor { background: #f97316; border-color: #f97316; color: white; }
+    .condition-btn.sel-NonFunctional { background: #ef4444; border-color: #ef4444; color: white; }
+
+    /* MSRP card */
+    .msrp-card { border-radius: 12px; padding: 13px 14px; margin-bottom: 13px; }
+    .msrp-card.current { background: #e8f5e9; border: 1.5px solid #a5d6a7; }
+    .msrp-card.obsolete { background: #fff3e0; border: 1.5px solid #ffcc80; }
+    .msrp-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+    .msrp-title.current { color: #2e7d32; }
+    .msrp-title.obsolete { color: #e65100; }
+    .msrp-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+    .msrp-label { font-size: 12px; color: var(--text-muted); }
+    .msrp-value { font-size: 16px; font-weight: 800; color: var(--text); }
+    .msrp-note { font-size: 12px; color: var(--text-muted); margin-top: 6px; font-style: italic; }
+    .msrp-autofill { font-size: 12px; color: var(--blue); font-weight: 600; cursor: pointer; text-decoration: underline; margin-top: 6px; display: inline-block; }
+
+    .alert { padding: 11px 13px; border-radius: 10px; font-size: 14px; font-weight: 500; display: flex; align-items: flex-start; gap: 8px; margin-bottom: 13px; }
     .alert-info { background: #e3f2fd; color: #1565c0; }
     .alert-success { background: #e8f5e9; color: #2e7d32; }
     .alert-error { background: #ffebee; color: #c62828; }
     .alert-warning { background: #fff8e1; color: #e65100; }
 
-    .spinner-wrap { display: none; flex-direction: column; align-items: center; padding: 32px 16px; gap: 14px; }
+    .spinner-wrap { display: none; flex-direction: column; align-items: center; padding: 28px 16px; gap: 12px; }
     .spinner-wrap.visible { display: flex; }
-    .spinner { width: 48px; height: 48px; border: 4px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin .8s linear infinite; }
+    .spinner { width: 44px; height: 44px; border: 4px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin .8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .spinner-label { font-size: 14px; color: var(--text-muted); font-weight: 500; }
     .spinner-steps { font-size: 12px; color: var(--blue); text-align: center; }
 
-    .search-bar { display: flex; gap: 8px; margin-bottom: 14px; align-items: center; }
-    .search-input { flex: 1; padding: 11px 13px; border: 1.5px solid var(--border); border-radius: 50px; font-size: 15px; background: white; -webkit-appearance: none; font-family: inherit; }
+    .search-bar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+    .search-input { flex: 1; padding: 10px 13px; border: 1.5px solid var(--border); border-radius: 50px; font-size: 15px; background: white; -webkit-appearance: none; font-family: inherit; }
     .search-input:focus { outline: none; border-color: var(--blue-light); }
-    .asset-count { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; padding: 0 2px; }
 
-    .asset-card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 12px; overflow: hidden; }
-    .asset-card-top { display: flex; gap: 12px; padding: 13px 14px; cursor: pointer; }
-    .asset-thumb { width: 64px; height: 64px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: var(--bg); cursor: zoom-in; }
-    .asset-thumb-placeholder { width: 64px; height: 64px; border-radius: 8px; background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0; }
+    .session-filter { padding: 8px 13px; border: 1.5px solid var(--border); border-radius: 50px; font-size: 14px; background: white; -webkit-appearance: none; font-family: inherit; color: var(--text); }
+    .session-filter:focus { outline: none; border-color: var(--blue-light); }
+
+    .asset-count { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; padding: 0 2px; }
+    .asset-card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 11px; overflow: hidden; }
+    .asset-card-top { display: flex; gap: 12px; padding: 12px 13px; cursor: pointer; }
+    .asset-thumb { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: var(--bg); cursor: zoom-in; }
+    .asset-thumb-placeholder { width: 60px; height: 60px; border-radius: 8px; background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0; }
     .asset-info { flex: 1; min-width: 0; }
     .asset-make { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); }
-    .asset-model { font-size: 16px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .asset-serial { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
-    .asset-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
-    .tag { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .asset-model { font-size: 15px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .asset-serial { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+    .asset-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 5px; }
+    .tag { display: inline-block; padding: 2px 7px; border-radius: 20px; font-size: 11px; font-weight: 600; }
     .tag-blue { background: #e3f2fd; color: #1565c0; }
     .tag-teal { background: #e0f7fa; color: #00695c; }
     .tag-amber { background: #fff8e1; color: #e65100; }
-    .badge-chevron { margin-left: auto; font-size: 18px; color: var(--text-muted); transition: transform .2s; align-self: center; }
+    .tag-green { background: #e8f5e9; color: #2e7d32; }
+    .tag-red { background: #ffebee; color: #c62828; }
+    .tag-orange { background: #fff3e0; color: #e65100; }
+    .tag-gray { background: #f5f5f5; color: #607080; }
+    .badge-chevron { margin-left: auto; font-size: 17px; color: var(--text-muted); transition: transform .2s; align-self: center; }
     .badge-chevron.open { transform: rotate(180deg); }
-    .asset-expand { display: none; border-top: 1px solid var(--border); padding: 14px; }
+    .asset-expand { display: none; border-top: 1px solid var(--border); padding: 13px; }
     .asset-expand.open { display: block; }
-    .asset-actions { display: flex; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+    .asset-actions { display: flex; gap: 8px; margin-top: 11px; padding-top: 11px; border-top: 1px solid var(--border); }
 
-    .empty-state { text-align: center; padding: 48px 24px; color: var(--text-muted); }
-    .empty-state .empty-icon { font-size: 60px; margin-bottom: 14px; }
-    .empty-state p { font-size: 16px; font-weight: 500; }
+    /* Sessions tab */
+    .session-card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 13px; overflow: hidden; }
+    .session-card-header { padding: 13px 15px; display: flex; align-items: center; gap: 10px; }
+    .session-status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .session-status-dot.active { background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,.2); }
+    .session-status-dot.completed { background: #94a3b8; }
+    .session-name { font-size: 16px; font-weight: 700; color: var(--text); flex: 1; }
+    .session-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .session-actions { display: flex; gap: 7px; flex-wrap: wrap; padding: 0 15px 13px; }
+
+    .log-timeline { padding: 4px 0; }
+    .log-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .log-entry:last-child { border-bottom: none; }
+    .log-time { font-size: 11px; color: var(--text-muted); min-width: 72px; padding-top: 1px; }
+    .log-action { font-size: 13px; color: var(--text); }
+
+    .no-session-notice { background: #fff8e1; border: 2px solid #ffcc02; border-radius: var(--radius); padding: 20px; text-align: center; margin-bottom: 16px; }
+    .no-session-notice .notice-icon { font-size: 36px; margin-bottom: 8px; }
+    .no-session-notice p { font-size: 15px; font-weight: 600; color: #b45309; margin-bottom: 12px; }
+    .no-session-notice small { font-size: 13px; color: #92400e; }
+
+    .empty-state { text-align: center; padding: 44px 24px; color: var(--text-muted); }
+    .empty-state .empty-icon { font-size: 54px; margin-bottom: 12px; }
+    .empty-state p { font-size: 15px; font-weight: 500; }
     .empty-state small { font-size: 13px; }
 
-    .toast { position: fixed; bottom: calc(24px + var(--safe-bottom)); left: 50%; transform: translateX(-50%) translateY(80px); background: #1a2027; color: white; padding: 12px 22px; border-radius: 50px; font-size: 14px; font-weight: 600; z-index: 999; transition: transform .3s cubic-bezier(.34,1.56,.64,1); white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,.3); max-width: calc(100vw - 32px); text-align: center; }
+    .toast { position: fixed; bottom: calc(24px + var(--safe-bottom)); left: 50%; transform: translateX(-50%) translateY(80px); background: #1a2027; color: white; padding: 11px 20px; border-radius: 50px; font-size: 14px; font-weight: 600; z-index: 999; transition: transform .3s cubic-bezier(.34,1.56,.64,1); white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,.3); max-width: calc(100vw - 32px); text-align: center; }
     .toast.show { transform: translateX(-50%) translateY(0); }
 
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 200; align-items: flex-end; }
@@ -143,42 +202,40 @@
     .modal-sheet { background: var(--card); border-radius: 20px 20px 0 0; width: 100%; max-height: 92vh; overflow-y: auto; padding: 0 0 calc(24px + var(--safe-bottom)); animation: slideUp .3s cubic-bezier(.34,1.56,.64,1); }
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     .modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 12px auto 8px; }
-    .modal-title { padding: 8px 16px 16px; font-size: 18px; font-weight: 800; color: var(--text); display: flex; align-items: center; justify-content: space-between; }
+    .modal-title { padding: 8px 16px 14px; font-size: 18px; font-weight: 800; color: var(--text); display: flex; align-items: center; justify-content: space-between; }
     .modal-close { background: var(--bg); border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-muted); }
     .modal-body { padding: 0 16px; }
+
+    .review-asset { display: flex; gap: 12px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--border); }
+    .review-asset:last-child { border-bottom: none; }
+    .review-thumb { width: 52px; height: 52px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: var(--bg); }
+    .review-thumb-ph { width: 52px; height: 52px; border-radius: 8px; background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .review-info { flex: 1; min-width: 0; }
+    .review-make { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); }
+    .review-model { font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .review-detail { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
 
     .img-viewer { display: none; position: fixed; inset: 0; background: black; z-index: 300; align-items: center; justify-content: center; }
     .img-viewer.open { display: flex; }
     .img-viewer img { max-width: 100%; max-height: 100%; object-fit: contain; }
     .img-viewer-close { position: absolute; top: calc(16px + var(--safe-top)); right: 16px; background: rgba(255,255,255,.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
-    .divider { height: 1px; background: var(--border); margin: 14px 0; }
+    .divider { height: 1px; background: var(--border); margin: 13px 0; }
     .mt-8 { margin-top: 8px; }
     .mt-12 { margin-top: 12px; }
     .mt-16 { margin-top: 16px; }
-    .icon-btn { background: none; border: none; cursor: pointer; padding: 6px; font-size: 20px; color: rgba(255,255,255,.8); min-width: 36px; min-height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
-    .icon-btn:active { background: rgba(255,255,255,.15); }
-    .key-indicator { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
+    .key-indicator { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 4px 9px; border-radius: 20px; }
     .key-set { background: rgba(0,172,193,.25); color: #80deea; }
     .key-missing { background: rgba(255,152,0,.25); color: #ffcc80; }
+    .icon-btn { background: none; border: none; cursor: pointer; padding: 6px; font-size: 19px; color: rgba(255,255,255,.8); min-width: 34px; min-height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+    .icon-btn:active { background: rgba(255,255,255,.15); }
 
-    /* ── Install banner ── */
-    .install-banner {
-      background: linear-gradient(135deg, #1b6ca8, #00acc1);
-      color: white;
-      padding: 12px 16px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 14px;
-      font-weight: 500;
-    }
+    .install-banner { background: linear-gradient(135deg, #1b6ca8, #00acc1); color: white; padding: 12px 16px; display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 500; }
     .install-banner .install-icon { font-size: 22px; flex-shrink: 0; }
     .install-banner .install-text { flex: 1; line-height: 1.4; }
     .install-banner strong { display: block; font-size: 15px; font-weight: 700; margin-bottom: 1px; }
     .install-banner .install-close { background: rgba(255,255,255,.2); border: none; color: white; width: 28px; height: 28px; border-radius: 50%; font-size: 16px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 
-    /* ── Install instructions modal ── */
     .install-step { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
     .install-step:last-child { border-bottom: none; }
     .install-step-num { background: var(--blue); color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; flex-shrink: 0; }
@@ -189,7 +246,6 @@
 </head>
 <body>
 
-<!-- Install to Home Screen banner (iOS only, shown until dismissed) -->
 <div class="install-banner" id="installBanner" style="display:none">
   <span class="install-icon">📲</span>
   <div class="install-text">
@@ -204,107 +260,136 @@
   <div class="header-icon">🏗️</div>
   <div>
     <div class="header-title">Asset Survey</div>
-    <div class="header-subtitle">Equipment Tag Scanner</div>
   </div>
   <div class="header-right">
-    <span id="keyIndicator" class="key-indicator key-missing">⚠️ No API Key</span>
+    <span id="sessionIndicator" class="session-pill none">No Session</span>
+    <span id="keyIndicator" class="key-indicator key-missing">⚠️ Key</span>
     <button class="icon-btn" onclick="openSettings()" title="Settings">⚙️</button>
-    <button class="btn btn-ghost" onclick="exportExcel()">⬇️ Export</button>
   </div>
 </div>
 
 <div class="tabs">
   <button class="tab-btn active" onclick="switchTab('survey')" id="tab-survey">
-    <span class="tab-icon">📷</span>New Survey
+    <span class="tab-icon">📷</span>Survey
   </button>
   <button class="tab-btn" onclick="switchTab('assets')" id="tab-assets">
     <span class="tab-icon">📋</span>Assets
     <span class="tab-badge" id="assetBadge"></span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('sessions')" id="tab-sessions">
+    <span class="tab-icon">📁</span>Sessions
   </button>
 </div>
 
 <!-- ══════════════ SURVEY ══════════════ -->
 <div class="section active" id="section-survey">
 
-  <div class="card">
-    <div class="card-header">📷 Step 1 — Capture Equipment Tag</div>
-    <div class="card-body">
-      <div class="capture-zone" id="captureZone" onclick="triggerCapture()">
-        <img class="preview-img" id="previewImg" alt="Captured tag">
-        <div class="placeholder" id="capturePlaceholder">
-          <div class="capture-icon">📸</div>
-          <div class="capture-text">Tap to Take Photo or Upload</div>
-          <div class="capture-sub">Point camera at the equipment nameplate or ID tag</div>
-        </div>
-      </div>
-      <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)">
-      <div class="btn-row mt-12">
-        <button class="btn btn-primary" style="flex:1" onclick="triggerCapture()">📷 Camera / Library</button>
-        <button class="btn btn-outline" id="clearBtn" onclick="clearCapture()" style="display:none">✕ Clear</button>
-      </div>
+  <div id="noSessionNotice" class="no-session-notice" style="display:none">
+    <div class="notice-icon">📁</div>
+    <p>No active session</p>
+    <small>Start a session in the Sessions tab before surveying assets.</small>
+    <div style="margin-top:12px">
+      <button class="btn btn-primary" onclick="switchTab('sessions')">Go to Sessions →</button>
     </div>
   </div>
 
-  <button class="btn btn-primary btn-full" id="analyzeBtn" onclick="analyzeImage()" disabled>
-    🔍 Analyze Tag with AI
-  </button>
-
-  <div class="spinner-wrap" id="spinnerWrap">
-    <div class="spinner"></div>
-    <div class="spinner-label" id="spinnerLabel">Analyzing tag…</div>
-    <div class="spinner-steps" id="spinnerSteps"></div>
-  </div>
-
-  <div id="resultsSection" style="display:none">
-    <div class="card mt-16">
-      <div class="card-header">✅ Step 2 — Verify & Correct Extracted Data</div>
+  <div id="surveyContent">
+    <div class="card">
+      <div class="card-header">📷 Step 1 — Capture Equipment Tag</div>
       <div class="card-body">
-        <div id="aiAlert"></div>
-        <div class="form-group">
-          <label class="form-label">Equipment Type</label>
-          <input class="form-input" id="f-equipmentType" placeholder="e.g. Rooftop HVAC Unit, Boiler, Pump…">
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Make / Manufacturer</label>
-            <input class="form-input" id="f-make" placeholder="e.g. Carrier">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Model Number</label>
-            <input class="form-input" id="f-modelNumber" placeholder="e.g. 50XC-060">
+        <div class="capture-zone" id="captureZone" onclick="triggerCapture()">
+          <img class="preview-img" id="previewImg" alt="Captured tag">
+          <div class="placeholder" id="capturePlaceholder">
+            <div class="capture-icon">📸</div>
+            <div class="capture-text">Tap to Take Photo or Upload</div>
+            <div class="capture-sub">Point camera at the equipment nameplate or ID tag</div>
           </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Serial Number</label>
-          <input class="form-input" id="f-serialNumber" placeholder="e.g. 2319G12345">
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Year of Service</label>
-            <input class="form-input" id="f-yearOfService" placeholder="e.g. 2018">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Est. Lifecycle</label>
-            <input class="form-input" id="f-estimatedLifecycle" placeholder="e.g. 15-20 years">
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Est. Replacement Cost</label>
-          <input class="form-input" id="f-replacementCost" placeholder="e.g. $15,000">
-        </div>
-        <div class="divider"></div>
-        <div class="form-group">
-          <label class="form-label">Location / Description</label>
-          <input class="form-input" id="f-location" placeholder="e.g. Roof – Unit 3, Mechanical Room B">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Notes</label>
-          <textarea class="form-textarea" id="f-notes" placeholder="Condition, observations, action items…"></textarea>
+        <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)">
+        <div class="btn-row mt-12">
+          <button class="btn btn-primary" style="flex:1" onclick="triggerCapture()">📷 Camera / Library</button>
+          <button class="btn btn-outline" id="clearBtn" onclick="clearCapture()" style="display:none">✕ Clear</button>
         </div>
       </div>
     </div>
-    <button class="btn btn-success btn-full" onclick="saveAsset()">💾 Save Asset to Survey</button>
-    <button class="btn btn-outline btn-full mt-8" onclick="resetSurvey()">＋ Survey Another Asset</button>
+
+    <div class="btn-row" style="margin-bottom:14px">
+      <button class="btn btn-primary" style="flex:2" id="analyzeBtn" onclick="analyzeImage()" disabled>
+        🔍 Analyze Tag with AI
+      </button>
+      <button class="btn btn-amber" style="flex:1" onclick="setManualEntry()">
+        ✏️ Can't Read Tag
+      </button>
+    </div>
+
+    <div class="spinner-wrap" id="spinnerWrap">
+      <div class="spinner"></div>
+      <div class="spinner-label" id="spinnerLabel">Analyzing tag…</div>
+      <div class="spinner-steps" id="spinnerSteps"></div>
+    </div>
+
+    <div id="resultsSection" style="display:none">
+      <div class="card">
+        <div class="card-header">✅ Step 2 — Verify &amp; Complete Asset Details</div>
+        <div class="card-body">
+          <div id="aiAlert"></div>
+          <div id="msrpResult"></div>
+
+          <div class="form-group">
+            <label class="form-label">Equipment Type</label>
+            <input class="form-input" id="f-equipmentType" placeholder="e.g. Rooftop HVAC Unit, Boiler, Pump…">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Make / Manufacturer</label>
+              <input class="form-input" id="f-make" placeholder="e.g. Carrier">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Model Number</label>
+              <input class="form-input" id="f-modelNumber" placeholder="e.g. 50XC-060">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Serial Number</label>
+            <input class="form-input" id="f-serialNumber" placeholder="e.g. 2319G12345">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Year of Service</label>
+              <input class="form-input" id="f-yearOfService" placeholder="e.g. 2018">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Est. Lifecycle</label>
+              <input class="form-input" id="f-estimatedLifecycle" placeholder="e.g. 15–20 years">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Est. Replacement Cost</label>
+            <input class="form-input" id="f-replacementCost" placeholder="e.g. $15,000">
+          </div>
+          <div class="divider"></div>
+          <div class="form-group">
+            <label class="form-label">Location / Description</label>
+            <input class="form-input" id="f-location" placeholder="e.g. Roof – Unit 3, Mechanical Room B">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Condition</label>
+            <div class="condition-group">
+              <button class="condition-btn" onclick="setCondition('Good')">✅ Good</button>
+              <button class="condition-btn" onclick="setCondition('Fair')">🟡 Fair</button>
+              <button class="condition-btn" onclick="setCondition('Poor')">🟠 Poor</button>
+              <button class="condition-btn" onclick="setCondition('Non-Functional')">🔴 Non-Functional</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <textarea class="form-textarea" id="f-notes" placeholder="Observations, action items, follow-up needed…"></textarea>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-success btn-full" onclick="saveAsset()">💾 Save Asset</button>
+      <button class="btn btn-outline btn-full mt-8" onclick="resetSurvey()">＋ Start Over</button>
+    </div>
   </div>
 
 </div>
@@ -313,6 +398,11 @@
 <div class="section" id="section-assets">
   <div class="search-bar">
     <input class="search-input" id="searchInput" type="search" placeholder="🔎  Search by make, model, serial, location…" oninput="filterAssets()">
+  </div>
+  <div style="margin-bottom:12px">
+    <select class="session-filter" id="sessionFilter" onchange="filterAssets()">
+      <option value="">All sessions</option>
+    </select>
   </div>
   <div class="asset-count" id="assetCount"></div>
   <div id="assetList"></div>
@@ -323,6 +413,38 @@
   </div>
 </div>
 
+<!-- ══════════════ SESSIONS ══════════════ -->
+<div class="section" id="section-sessions">
+
+  <div id="activeSessionCard" style="display:none">
+    <div class="card">
+      <div class="card-header" style="background:linear-gradient(135deg,#1b5e20,#388e3c)">▶️ Active Session</div>
+      <div class="card-body">
+        <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:4px" id="activeSessionName"></div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px" id="activeSessionMeta"></div>
+        <div class="btn-row">
+          <button class="btn btn-teal" style="flex:1" onclick="openReviewModal()">📋 Review &amp; Export</button>
+          <button class="btn btn-danger btn-sm" onclick="confirmEndSession()">⏹ End Session</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="startSessionCard" class="card">
+    <div class="card-header">▶️ Start New Session</div>
+    <div class="card-body">
+      <div class="form-group">
+        <label class="form-label">Session Name</label>
+        <input class="form-input" id="newSessionName" placeholder="e.g. Main Building – Floors 1–3" maxlength="80">
+      </div>
+      <button class="btn btn-success btn-full" onclick="startSession()">▶️ Start Session</button>
+    </div>
+  </div>
+
+  <div id="pastSessionsList"></div>
+
+</div>
+
 <!-- ══════════════ SETTINGS MODAL ══════════════ -->
 <div class="modal-overlay" id="settingsModal">
   <div class="modal-sheet">
@@ -331,18 +453,18 @@
     <div class="modal-body">
       <div class="form-group">
         <label class="form-label">Building / Property Name</label>
-        <input class="form-input" id="propertyNameInput" placeholder="e.g. Cityview Towers, 123 Main Street">
-        <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Appears in the title of your exported spreadsheet</div>
+        <input class="form-input" id="propertyNameInput" placeholder="e.g. Cityview Hotel, 123 Main St">
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Appears in exported spreadsheet header</div>
       </div>
       <div class="divider"></div>
-      <div class="alert alert-info" style="margin-bottom:16px">
-        🔒 Your API key is saved only in <strong>this browser</strong> — it's sent directly to Anthropic's servers and never anywhere else.
+      <div class="alert alert-info" style="margin-bottom:14px">
+        🔒 Your API key is saved only in <strong>this browser</strong> — sent directly to Anthropic's servers and never anywhere else.
       </div>
       <div class="form-group">
         <label class="form-label">Anthropic API Key</label>
         <input type="password" class="form-input" id="apiKeyInput" placeholder="sk-ant-api03-…" autocomplete="off" spellcheck="false">
       </div>
-      <div style="margin-bottom:16px">
+      <div style="margin-bottom:14px">
         <a href="https://console.anthropic.com/settings/keys" target="_blank" style="font-size:13px;color:var(--blue);text-decoration:none;font-weight:600">
           Get your key at console.anthropic.com →
         </a>
@@ -363,14 +485,41 @@
   </div>
 </div>
 
-<!-- ══════════════ INSTALL INSTRUCTIONS MODAL ══════════════ -->
+<!-- ══════════════ REVIEW MODAL ══════════════ -->
+<div class="modal-overlay" id="reviewModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📋 Review Session Assets <button class="modal-close" onclick="closeReviewModal()">✕</button></div>
+    <div class="modal-body">
+      <div id="reviewSummary" style="margin-bottom:14px"></div>
+      <div id="reviewList"></div>
+      <div style="height:14px"></div>
+      <button class="btn btn-success btn-full" onclick="exportSession()" style="margin-bottom:8px">⬇️ Export Session to Excel</button>
+      <button class="btn btn-outline btn-full" onclick="closeReviewModal()">Close</button>
+      <div style="height:8px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ SESSION LOG MODAL ══════════════ -->
+<div class="modal-overlay" id="logModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="logModalTitle">📄 Session Log <button class="modal-close" onclick="closeLogModal()">✕</button></div>
+    <div class="modal-body">
+      <div id="logTimeline"></div>
+      <div style="height:8px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ INSTALL MODAL ══════════════ -->
 <div class="modal-overlay" id="installModal">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
     <div class="modal-title">📲 Add to Home Screen <button class="modal-close" onclick="closeInstallModal()">✕</button></div>
     <div class="modal-body">
-      <p style="font-size:14px;color:var(--text-muted);margin-bottom:16px">Follow these steps in <strong>Safari</strong> on your iPhone or iPad to install Asset Survey as an app on your home screen:</p>
-
+      <p style="font-size:14px;color:var(--text-muted);margin-bottom:16px">Follow these steps in <strong>Safari</strong> on your iPhone or iPad:</p>
       <div class="install-step">
         <div class="install-step-num">1</div>
         <div class="install-step-text">Open this page in <strong>Safari</strong> (not Chrome or another browser)</div>
@@ -387,18 +536,13 @@
         <div class="install-step-num">4</div>
         <div class="install-step-text">Tap <strong>"Add"</strong> in the top right corner</div>
       </div>
-
-      <div class="alert alert-success mt-12">
-        ✅ The app icon will appear on your home screen. It opens full-screen with no browser chrome — just like a native app.
-      </div>
-
+      <div class="alert alert-success mt-12">✅ The app icon will appear on your home screen. Opens full-screen like a native app.</div>
       <button class="btn btn-primary btn-full" onclick="closeInstallModal()" style="margin-bottom:8px;margin-top:8px">Got it!</button>
       <div style="height:8px"></div>
     </div>
   </div>
 </div>
 
-<!-- ══════════════ IMAGE VIEWER ══════════════ -->
 <div class="img-viewer" id="imgViewer">
   <button class="img-viewer-close" onclick="closeImgViewer()">✕</button>
   <img id="viewerImg" src="" alt="">
@@ -417,56 +561,74 @@ function setApiKey(k) { localStorage.setItem('anthropic_api_key', k.trim()); }
 
 function updateKeyIndicator() {
   const el = document.getElementById('keyIndicator');
-  if (getApiKey()) {
-    el.className = 'key-indicator key-set';
-    el.textContent = '✓ API Key Set';
-  } else {
-    el.className = 'key-indicator key-missing';
-    el.textContent = '⚠️ No API Key';
-  }
+  if (getApiKey()) { el.className = 'key-indicator key-set'; el.textContent = '✓ Key Set'; }
+  else { el.className = 'key-indicator key-missing'; el.textContent = '⚠️ Key'; }
 }
 
-// ══════════════ INDEXED DB ══════════════
+// ══════════════ INDEXED DB v2 ══════════════
 const DB = {
   _db: null,
 
   async init() {
     return new Promise((resolve, reject) => {
-      const req = indexedDB.open('AssetSurveyDB', 1);
+      const req = indexedDB.open('AssetSurveyDB', 2);
       req.onupgradeneeded = e => {
-        e.target.result.createObjectStore('assets', { keyPath: 'id' });
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('assets')) {
+          db.createObjectStore('assets', { keyPath: 'id' });
+        }
+        if (!db.objectStoreNames.contains('sessions')) {
+          db.createObjectStore('sessions', { keyPath: 'id' });
+        }
       };
       req.onsuccess = e => { this._db = e.target.result; resolve(); };
       req.onerror = e => reject(e.target.error);
     });
   },
 
-  async getAll() {
+  async _all(store) {
     return new Promise((resolve, reject) => {
-      const tx = this._db.transaction('assets', 'readonly');
-      const req = tx.objectStore('assets').getAll();
-      req.onsuccess = () => resolve(req.result.sort((a, b) => b.timestamp.localeCompare(a.timestamp)));
+      const tx = this._db.transaction(store, 'readonly');
+      const req = tx.objectStore(store).getAll();
+      req.onsuccess = () => resolve(req.result);
       req.onerror = e => reject(e.target.error);
     });
   },
 
-  async put(asset) {
+  async _get(store, id) {
     return new Promise((resolve, reject) => {
-      const tx = this._db.transaction('assets', 'readwrite');
-      const req = tx.objectStore('assets').put(asset);
+      const tx = this._db.transaction(store, 'readonly');
+      const req = tx.objectStore(store).get(id);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = e => reject(e.target.error);
+    });
+  },
+
+  async _put(store, item) {
+    return new Promise((resolve, reject) => {
+      const tx = this._db.transaction(store, 'readwrite');
+      const req = tx.objectStore(store).put(item);
       req.onsuccess = () => resolve();
       req.onerror = e => reject(e.target.error);
     });
   },
 
-  async delete(id) {
+  async _delete(store, id) {
     return new Promise((resolve, reject) => {
-      const tx = this._db.transaction('assets', 'readwrite');
-      const req = tx.objectStore('assets').delete(id);
+      const tx = this._db.transaction(store, 'readwrite');
+      const req = tx.objectStore(store).delete(id);
       req.onsuccess = () => resolve();
       req.onerror = e => reject(e.target.error);
     });
-  }
+  },
+
+  async getAll()          { return (await this._all('assets')).sort((a,b) => b.timestamp.localeCompare(a.timestamp)); },
+  async put(a)            { return this._put('assets', a); },
+  async delete(id)        { return this._delete('assets', id); },
+  async getAllSessions()   { return (await this._all('sessions')).sort((a,b) => b.startTime.localeCompare(a.startTime)); },
+  async getSession(id)    { return this._get('sessions', id); },
+  async putSession(s)     { return this._put('sessions', s); },
+  async deleteSession(id) { return this._delete('sessions', id); }
 };
 
 // ══════════════ ANTHROPIC API ══════════════
@@ -508,7 +670,7 @@ async function analyzeTagImage(base64, mimeType) {
     role: 'user',
     content: [
       { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
-      { type: 'text', text: `You are analyzing an equipment identification tag or nameplate photo taken in the field during a building asset survey.
+      { type: 'text', text: `You are analyzing an equipment identification tag or nameplate photo taken during a building asset survey.
 
 Extract these fields:
 - make: Manufacturer or brand name
@@ -524,16 +686,14 @@ Example: {"make":"Carrier","modelNumber":"50XC-060","serialNumber":"2319G12345",
 }
 
 async function getEquipmentInfo(make, model, equipmentType, searchContext) {
-  const ctxLine = searchContext
-    ? `Web search context: ${searchContext.slice(0, 1000)}\n\n`
-    : '';
+  const ctxLine = searchContext ? `Web search context: ${searchContext.slice(0, 800)}\n\n` : '';
   const text = await callClaude([{
     role: 'user',
-    content: `${ctxLine}Equipment — Make: ${make || 'Unknown'}, Model: ${model || 'Unknown'}, Type: ${equipmentType || 'Unknown'}
+    content: `${ctxLine}Equipment — Make: ${make||'Unknown'}, Model: ${model||'Unknown'}, Type: ${equipmentType||'Unknown'}
 
 Based on this information and your knowledge:
-1. yearOfService: The approximate year this specific model was introduced or the likely year of installation (e.g., "2018" or "2015–2020 range")
-2. estimatedLifecycle: Typical operational lifespan for this equipment type (e.g., "15–20 years" or "20–25 years")
+1. yearOfService: The approximate year this specific model was introduced or the likely installation year (e.g., "2018" or "2015–2020 range")
+2. estimatedLifecycle: Typical operational lifespan for this equipment type (e.g., "15–20 years")
 
 Return ONLY valid JSON: {"yearOfService":"","estimatedLifecycle":""}
 Always provide reasonable estimates — never leave fields empty.`
@@ -541,15 +701,40 @@ Always provide reasonable estimates — never leave fields empty.`
   return parseJSON(text, { yearOfService: '', estimatedLifecycle: '' });
 }
 
-// ══════════════ DUCKDUCKGO SEARCH ══════════════
+async function getMSRPInfo(make, model, equipType) {
+  if (!make && !model) return null;
+  const text = await callClaude([{
+    role: 'user',
+    content: `You are a commercial equipment pricing specialist for hotel and commercial properties.
+
+Equipment:
+Make: ${make || 'Unknown'}
+Model: ${model || 'Unknown'}
+Type: ${equipType || 'Unknown'}
+
+Provide:
+1. msrp: Estimated MSRP in USD as a number (e.g. 12500). Use your best estimate based on equipment category/class.
+2. isObsolete: true if this model is discontinued or obsolete, false if currently available
+3. replacementModel: If obsolete, the current manufacturer equivalent model name. null if current.
+4. replacementMSRP: If obsolete, the current equivalent estimated MSRP as a number. null if current.
+5. replacementNote: Brief note about the replacement or upgrade. null if current.
+
+Return ONLY valid JSON:
+{"msrp":12500,"isObsolete":false,"replacementModel":null,"replacementMSRP":null,"replacementNote":null}`
+  }], 400);
+  const result = parseJSON(text, { msrp: null, isObsolete: false, replacementModel: null, replacementMSRP: null, replacementNote: null });
+  if (!result.msrp && result.msrp !== 0) return null;
+  return result;
+}
+
+// ══════════════ DUCKDUCKGO ══════════════
 async function searchDDG(query) {
   try {
     const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
     const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (!res.ok) return '';
     const d = await res.json();
-    return [d.AbstractText, d.Answer, ...(d.RelatedTopics || []).slice(0, 3).map(t => t.Text)]
-      .filter(Boolean).join(' ');
+    return [d.AbstractText, d.Answer, ...(d.RelatedTopics||[]).slice(0,3).map(t=>t.Text)].filter(Boolean).join(' ');
   } catch { return ''; }
 }
 
@@ -585,7 +770,12 @@ function fileToBase64(file) {
 let currentFile = null;
 let currentBlob = null;
 let allAssets = [];
+let allSessions = [];
 let editingId = null;
+let activeSession = null;
+let lastLocation = '';
+let currentCondition = '';
+let isManualEntry = false;
 const objUrls = new Map();
 
 function makeId() {
@@ -601,6 +791,8 @@ function switchTab(tab) {
   document.getElementById('tab-' + tab).classList.add('active');
   document.getElementById('section-' + tab).classList.add('active');
   if (tab === 'assets') loadAssets();
+  if (tab === 'sessions') renderSessionsTab();
+  if (tab === 'survey') updateSurveySessionGate();
 }
 
 // ══════════════ TOAST ══════════════
@@ -611,6 +803,194 @@ function showToast(msg, ms = 2500) {
   clearTimeout(t._t);
   t._t = setTimeout(() => t.classList.remove('show'), ms);
 }
+
+// ══════════════ SESSION MANAGEMENT ══════════════
+function updateSessionIndicator() {
+  const el = document.getElementById('sessionIndicator');
+  if (activeSession) {
+    el.className = 'session-pill active';
+    const name = activeSession.name.length > 18 ? activeSession.name.slice(0, 16) + '…' : activeSession.name;
+    el.textContent = '● ' + name;
+  } else {
+    el.className = 'session-pill none';
+    el.textContent = 'No Session';
+  }
+}
+
+function updateSurveySessionGate() {
+  const notice = document.getElementById('noSessionNotice');
+  const content = document.getElementById('surveyContent');
+  if (activeSession) {
+    notice.style.display = 'none';
+    content.style.display = 'block';
+  } else {
+    notice.style.display = 'block';
+    content.style.display = 'none';
+  }
+}
+
+async function loadActiveSession() {
+  const sessions = await DB.getAllSessions();
+  allSessions = sessions;
+  activeSession = sessions.find(s => s.status === 'active') || null;
+  updateSessionIndicator();
+  updateSurveySessionGate();
+}
+
+async function startSession() {
+  const nameEl = document.getElementById('newSessionName');
+  const name = nameEl.value.trim();
+  if (!name) { showToast('⚠️ Enter a session name'); nameEl.focus(); return; }
+
+  if (activeSession) {
+    showToast('⚠️ End the current session first'); return;
+  }
+
+  const session = {
+    id: 'sess_' + Date.now(),
+    name,
+    startTime: new Date().toISOString(),
+    endTime: null,
+    status: 'active',
+    log: [{ time: new Date().toISOString(), action: 'Session started' }]
+  };
+  await DB.putSession(session);
+  activeSession = session;
+  allSessions = [session, ...allSessions];
+  nameEl.value = '';
+  updateSessionIndicator();
+  updateSurveySessionGate();
+  renderSessionsTab();
+  showToast('▶️ Session started — go to Survey tab');
+}
+
+async function confirmEndSession() {
+  if (!activeSession) return;
+  const count = allAssets.filter(a => a.sessionId === activeSession.id).length ||
+    (await DB.getAll()).filter(a => a.sessionId === activeSession.id).length;
+  if (!confirm(`End "${activeSession.name}"? It has ${count} asset${count!==1?'s':''} recorded.`)) return;
+  await endSession();
+}
+
+async function endSession() {
+  if (!activeSession) return;
+  activeSession.endTime = new Date().toISOString();
+  activeSession.status = 'completed';
+  activeSession.log.push({ time: new Date().toISOString(), action: 'Session ended' });
+  await DB.putSession(activeSession);
+  lastLocation = '';
+  activeSession = null;
+  await loadActiveSession();
+  renderSessionsTab();
+  showToast('⏹ Session ended');
+}
+
+async function reopenSession(id) {
+  if (activeSession) { showToast('⚠️ End the current session first'); return; }
+  const session = await DB.getSession(id);
+  if (!session) return;
+  session.status = 'active';
+  session.endTime = null;
+  session.log.push({ time: new Date().toISOString(), action: 'Session reopened' });
+  await DB.putSession(session);
+  activeSession = session;
+  allSessions = allSessions.map(s => s.id === id ? session : s);
+  updateSessionIndicator();
+  updateSurveySessionGate();
+  renderSessionsTab();
+  showToast('🔓 Session reopened');
+}
+
+async function logSessionAction(action) {
+  if (!activeSession) return;
+  activeSession.log.push({ time: new Date().toISOString(), action });
+  await DB.putSession(activeSession);
+}
+
+async function renderSessionsTab() {
+  const sessions = await DB.getAllSessions();
+  allSessions = sessions;
+  const assets = await DB.getAll();
+
+  const activeEl = document.getElementById('activeSessionCard');
+  const startEl = document.getElementById('startSessionCard');
+
+  if (activeSession) {
+    activeEl.style.display = 'block';
+    startEl.style.display = 'none';
+    document.getElementById('activeSessionName').textContent = activeSession.name;
+    const sessionAssets = assets.filter(a => a.sessionId === activeSession.id);
+    const started = new Date(activeSession.startTime);
+    const elapsed = formatElapsed(started);
+    document.getElementById('activeSessionMeta').textContent =
+      `Started ${elapsed} · ${sessionAssets.length} asset${sessionAssets.length!==1?'s':''} surveyed`;
+  } else {
+    activeEl.style.display = 'none';
+    startEl.style.display = 'block';
+  }
+
+  const pastSessions = sessions.filter(s => s.status !== 'active');
+  const pastEl = document.getElementById('pastSessionsList');
+
+  if (!pastSessions.length) {
+    pastEl.innerHTML = sessions.length === 0
+      ? `<div class="empty-state"><div class="empty-icon">📁</div><p>No sessions yet</p><small>Start a session above to begin surveying</small></div>`
+      : '';
+    return;
+  }
+
+  pastEl.innerHTML = `
+    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin-bottom:10px;padding:0 2px">Past Sessions</div>
+    ${pastSessions.map(s => {
+      const count = assets.filter(a => a.sessionId === s.id).length;
+      const date = new Date(s.startTime).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+      const endDate = s.endTime ? new Date(s.endTime).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : '';
+      return `
+      <div class="session-card">
+        <div class="session-card-header">
+          <div class="session-status-dot completed"></div>
+          <div style="flex:1">
+            <div class="session-name">${esc(s.name)}</div>
+            <div class="session-meta">${date}${endDate && endDate!==date?' → '+endDate:''} · ${count} asset${count!==1?'s':''}</div>
+          </div>
+        </div>
+        <div class="session-actions">
+          <button class="btn btn-outline btn-sm" onclick="openLogModal('${s.id}')">📄 Log</button>
+          <button class="btn btn-outline btn-sm" onclick="reopenSession('${s.id}')">🔓 Reopen</button>
+          <button class="btn btn-teal btn-sm" onclick="exportExcelSession('${s.id}','${esc(s.name)}')">⬇️ Export</button>
+        </div>
+      </div>`;
+    }).join('')}`;
+}
+
+function formatElapsed(date) {
+  const diff = Date.now() - date.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return date.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+}
+
+// ══════════════ SESSION LOG MODAL ══════════════
+async function openLogModal(sessionId) {
+  const session = await DB.getSession(sessionId);
+  if (!session) return;
+  document.getElementById('logModalTitle').innerHTML =
+    `📄 ${esc(session.name)} <button class="modal-close" onclick="closeLogModal()">✕</button>`;
+  const log = (session.log || []).slice().reverse();
+  document.getElementById('logTimeline').innerHTML = log.length
+    ? `<div class="log-timeline">${log.map(e => {
+        const t = new Date(e.time);
+        const ts = t.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', hour12:true });
+        const ds = t.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+        return `<div class="log-entry"><div class="log-time">${ds}<br>${ts}</div><div class="log-action">${esc(e.action)}</div></div>`;
+      }).join('')}</div>`
+    : '<div style="color:var(--text-muted);font-size:14px;padding:16px 0">No log entries yet.</div>';
+  document.getElementById('logModal').classList.add('open');
+}
+function closeLogModal() { document.getElementById('logModal').classList.remove('open'); }
 
 // ══════════════ CAPTURE ══════════════
 function triggerCapture() { document.getElementById('fileInput').click(); }
@@ -643,11 +1023,35 @@ function clearCapture() {
   document.getElementById('resultsSection').style.display = 'none';
 }
 
+// ══════════════ MANUAL ENTRY ══════════════
+function setManualEntry() {
+  isManualEntry = true;
+  currentCondition = '';
+  populateForm({});
+  if (lastLocation) document.getElementById('f-location').value = lastLocation;
+  document.getElementById('resultsSection').style.display = 'block';
+  document.getElementById('aiAlert').innerHTML =
+    `<div class="alert alert-warning">✏️ Manual entry mode — tag could not be read. Fill in the fields below.</div>`;
+  document.getElementById('msrpResult').innerHTML = '';
+  document.querySelectorAll('.condition-btn').forEach(b => b.className = 'condition-btn');
+}
+
+// ══════════════ CONDITION ══════════════
+function setCondition(value) {
+  currentCondition = value;
+  const safeVal = value.replace(/[^a-zA-Z]/g, '');
+  document.querySelectorAll('.condition-btn').forEach(b => {
+    b.className = 'condition-btn';
+    if (b.textContent.includes(value)) b.className = `condition-btn sel-${safeVal}`;
+  });
+}
+
 // ══════════════ ANALYZE ══════════════
 async function analyzeImage() {
   if (!currentFile) return;
   if (!getApiKey()) { openSettings(); return; }
 
+  isManualEntry = false;
   const spinner = document.getElementById('spinnerWrap');
   const analyzeBtn = document.getElementById('analyzeBtn');
   const label = document.getElementById('spinnerLabel');
@@ -659,15 +1063,15 @@ async function analyzeImage() {
   document.getElementById('aiAlert').innerHTML = '';
 
   const msgs = [
-    ['Reading tag with Claude Vision…', 'Sending image to claude-sonnet-4-6'],
+    ['Reading tag with Claude Vision…', 'Sending image to AI'],
     ['Identifying equipment…', 'Extracting make, model & serial number'],
     ['Searching equipment database…', 'Querying DuckDuckGo for specifications'],
-    ['Estimating lifecycle…', 'Calculating service life data']
+    ['Looking up MSRP & lifecycle…', 'Checking pricing and service life data']
   ];
   let step = 0;
   const ticker = setInterval(() => {
     if (step < msgs.length) { label.textContent = msgs[step][0]; steps.textContent = msgs[step][1]; step++; }
-  }, 2000);
+  }, 2200);
 
   try {
     const base64 = await fileToBase64(currentFile);
@@ -676,14 +1080,24 @@ async function analyzeImage() {
     const extracted = await analyzeTagImage(base64, mimeType);
 
     const searchQuery = [extracted.make, extracted.modelNumber, extracted.equipmentType, 'specifications lifespan year'].filter(Boolean).join(' ');
-    const searchContext = await searchDDG(searchQuery);
+    const [searchContext, msrpData] = await Promise.all([
+      searchDDG(searchQuery),
+      getMSRPInfo(extracted.make, extracted.modelNumber, extracted.equipmentType)
+    ]);
 
     const info = await getEquipmentInfo(extracted.make, extracted.modelNumber, extracted.equipmentType, searchContext);
 
     clearInterval(ticker);
     spinner.classList.remove('visible');
 
+    currentCondition = '';
+    document.querySelectorAll('.condition-btn').forEach(b => b.className = 'condition-btn');
     populateForm({ ...extracted, ...info });
+    if (lastLocation) document.getElementById('f-location').value = lastLocation;
+
+    if (msrpData) renderMSRPResult(msrpData);
+    else document.getElementById('msrpResult').innerHTML = '';
+
     document.getElementById('resultsSection').style.display = 'block';
     document.getElementById('aiAlert').innerHTML =
       `<div class="alert alert-success">✅ AI extracted tag data. Review and correct any fields below.</div>`;
@@ -694,8 +1108,39 @@ async function analyzeImage() {
     analyzeBtn.disabled = false;
     document.getElementById('resultsSection').style.display = 'block';
     document.getElementById('aiAlert').innerHTML =
-      `<div class="alert alert-error">⚠️ ${err.message}</div>`;
+      `<div class="alert alert-error">⚠️ ${esc(err.message)}</div>`;
   }
+}
+
+function renderMSRPResult(data) {
+  const fmt = n => n ? '$' + Number(n).toLocaleString() : '—';
+  const el = document.getElementById('msrpResult');
+  if (data.isObsolete) {
+    el.innerHTML = `
+      <div class="msrp-card obsolete">
+        <div class="msrp-title obsolete">⚠️ Discontinued Model — Replacement Available</div>
+        <div class="msrp-row"><span class="msrp-label">Original MSRP</span><span class="msrp-value">${fmt(data.msrp)}</span></div>
+        ${data.replacementModel ? `<div class="msrp-row"><span class="msrp-label">Current Equivalent</span><span class="msrp-value" style="font-size:14px">${esc(data.replacementModel)}</span></div>` : ''}
+        ${data.replacementMSRP ? `<div class="msrp-row"><span class="msrp-label">Replacement MSRP</span><span class="msrp-value">${fmt(data.replacementMSRP)}</span></div>` : ''}
+        ${data.replacementNote ? `<div class="msrp-note">${esc(data.replacementNote)}</div>` : ''}
+        ${data.replacementMSRP ? `<span class="msrp-autofill" onclick="autofillCost(${data.replacementMSRP})">Use ${fmt(data.replacementMSRP)} as Replacement Cost →</span>` : (data.msrp ? `<span class="msrp-autofill" onclick="autofillCost(${data.msrp})">Use ${fmt(data.msrp)} as Replacement Cost →</span>` : '')}
+      </div>`;
+  } else {
+    el.innerHTML = `
+      <div class="msrp-card current">
+        <div class="msrp-title current">✅ Current Model</div>
+        <div class="msrp-row"><span class="msrp-label">Estimated MSRP</span><span class="msrp-value">${fmt(data.msrp)}</span></div>
+        ${data.replacementNote ? `<div class="msrp-note">${esc(data.replacementNote)}</div>` : ''}
+        ${data.msrp ? `<span class="msrp-autofill" onclick="autofillCost(${data.msrp})">Use ${fmt(data.msrp)} as Replacement Cost →</span>` : ''}
+      </div>`;
+  }
+  // stash for saving
+  el._msrpData = data;
+}
+
+function autofillCost(amount) {
+  document.getElementById('f-replacementCost').value = '$' + Number(amount).toLocaleString();
+  showToast('✅ Replacement cost filled in');
 }
 
 function populateForm(data) {
@@ -710,40 +1155,92 @@ function getFormData() {
 
 // ══════════════ SAVE ASSET ══════════════
 async function saveAsset() {
+  if (!activeSession) { showToast('⚠️ Start a session first'); switchTab('sessions'); return; }
   const data = getFormData();
-  if (!data.make && !data.modelNumber && !data.serialNumber) {
+  if (!data.make && !data.modelNumber && !data.serialNumber && !data.equipmentType) {
     showToast('⚠️ Fill in at least one field'); return;
   }
+
+  const msrpEl = document.getElementById('msrpResult');
+  const msrpData = msrpEl._msrpData || null;
+
   try {
     const asset = {
       id: makeId(),
       timestamp: new Date().toISOString(),
+      sessionId: activeSession.id,
+      sessionName: activeSession.name,
+      condition: currentCondition || '',
+      manualEntry: isManualEntry,
+      msrp: msrpData?.msrp || null,
+      isObsolete: msrpData?.isObsolete || false,
+      replacementModel: msrpData?.replacementModel || '',
+      replacementMSRP: msrpData?.replacementMSRP || null,
       ...data,
       imageBlob: currentBlob || null
     };
     await DB.put(asset);
+
+    if (data.location) lastLocation = data.location;
+
+    const label = [data.make, data.modelNumber || data.equipmentType].filter(Boolean).join(' ');
+    const loc = data.location ? ` @ ${data.location}` : '';
+    await logSessionAction(`Saved: ${label || 'Asset'}${loc}`);
+
     showToast('✅ Asset saved!');
     updateBadge();
-    resetSurvey();
-    switchTab('assets');
+
+    // Stay on survey tab — reset form and condition
+    currentCondition = '';
+    isManualEntry = false;
+    clearCapture();
+    populateForm({});
+    if (lastLocation) document.getElementById('f-location').value = lastLocation;
+    document.querySelectorAll('.condition-btn').forEach(b => b.className = 'condition-btn');
+    document.getElementById('aiAlert').innerHTML = '';
+    document.getElementById('msrpResult').innerHTML = '';
+    msrpEl._msrpData = null;
+    document.getElementById('resultsSection').style.display = 'none';
+
   } catch (err) {
     showToast('❌ ' + err.message);
   }
 }
 
 function resetSurvey() {
+  currentCondition = '';
+  isManualEntry = false;
   clearCapture();
   populateForm({});
+  document.querySelectorAll('.condition-btn').forEach(b => b.className = 'condition-btn');
   document.getElementById('aiAlert').innerHTML = '';
+  document.getElementById('msrpResult').innerHTML = '';
+  document.getElementById('msrpResult')._msrpData = null;
+  document.getElementById('resultsSection').style.display = 'none';
 }
 
 // ══════════════ ASSETS LIST ══════════════
 async function loadAssets() {
   try {
     allAssets = await DB.getAll();
+    await populateSessionFilter();
     renderAssets(allAssets);
     updateBadge();
   } catch (err) { showToast('❌ Failed to load assets'); }
+}
+
+async function populateSessionFilter() {
+  const sessions = await DB.getAllSessions();
+  const sel = document.getElementById('sessionFilter');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All sessions</option>';
+  sessions.forEach(s => {
+    const o = document.createElement('option');
+    o.value = s.id;
+    o.textContent = s.name;
+    sel.appendChild(o);
+  });
+  if (cur) sel.value = cur;
 }
 
 function updateBadge() {
@@ -756,9 +1253,12 @@ function updateBadge() {
 
 function filterAssets() {
   const q = document.getElementById('searchInput').value.toLowerCase();
-  const filtered = q
-    ? allAssets.filter(a => [a.make, a.modelNumber, a.serialNumber, a.equipmentType, a.location, a.notes].some(v => (v||'').toLowerCase().includes(q)))
-    : allAssets;
+  const sessId = document.getElementById('sessionFilter').value;
+  let filtered = allAssets;
+  if (sessId) filtered = filtered.filter(a => a.sessionId === sessId);
+  if (q) filtered = filtered.filter(a =>
+    [a.make, a.modelNumber, a.serialNumber, a.equipmentType, a.location, a.notes, a.condition].some(v => (v||'').toLowerCase().includes(q))
+  );
   renderAssets(filtered);
 }
 
@@ -766,6 +1266,12 @@ function getObjUrl(asset) {
   if (!asset.imageBlob) return null;
   if (!objUrls.has(asset.id)) objUrls.set(asset.id, URL.createObjectURL(asset.imageBlob));
   return objUrls.get(asset.id);
+}
+
+function conditionTag(c) {
+  if (!c) return '';
+  const map = { 'Good':'tag-green', 'Fair':'tag-amber', 'Poor':'tag-orange', 'Non-Functional':'tag-red' };
+  return `<span class="tag ${map[c]||'tag-gray'}">${esc(c)}</span>`;
 }
 
 function renderAssets(assets) {
@@ -792,7 +1298,7 @@ function renderAssets(assets) {
     const priorityColors = { 'REPLACE NOW':'#FF0000','CRITICAL':'#c62828','HIGH':'#e65100','MEDIUM':'#f57f17','LOW':'#2e7d32' };
     const priorityBg = { 'REPLACE NOW':'#ffebee','CRITICAL':'#ffebee','HIGH':'#fff3e0','MEDIUM':'#fffde7','LOW':'#e8f5e9' };
     const showPriority = remLife !== null && priority !== 'Unknown' && priority !== 'LOW';
-    const replTag = replYear ? `<span class="tag" style="background:#e8eaf6;color:#283593">Replace ~${replYear}</span>` : '';
+    const replTag = replYear ? `<span class="tag" style="background:#e8eaf6;color:#283593">~${replYear}</span>` : '';
     const priorityTag = showPriority ? `<span class="tag" style="background:${priorityBg[priority]||'#eee'};color:${priorityColors[priority]||'#333'}">${priority}</span>` : '';
 
     return `
@@ -805,8 +1311,8 @@ function renderAssets(assets) {
           <div class="asset-serial">S/N: ${esc(a.serialNumber) || '—'}</div>
           <div class="asset-tags">
             ${a.equipmentType ? `<span class="tag tag-blue">${esc(a.equipmentType)}</span>` : ''}
+            ${conditionTag(a.condition)}
             ${a.yearOfService ? `<span class="tag tag-teal">${esc(a.yearOfService)}</span>` : ''}
-            ${a.estimatedLifecycle ? `<span class="tag tag-amber">${esc(a.estimatedLifecycle)}</span>` : ''}
             ${replTag}${priorityTag}
           </div>
         </div>
@@ -814,14 +1320,17 @@ function renderAssets(assets) {
       </div>
       <div class="asset-expand" id="exp-${a.id}">
         <div class="form-row">
-          <div><span class="form-label">Location</span><div style="font-size:14px;margin-top:3px">${esc(a.location) || '—'}</div></div>
-          <div><span class="form-label">Added</span><div style="font-size:14px;margin-top:3px">${dateStr}</div></div>
+          <div><span class="form-label">Location</span><div style="font-size:13px;margin-top:3px">${esc(a.location) || '—'}</div></div>
+          <div><span class="form-label">Added</span><div style="font-size:13px;margin-top:3px">${dateStr}</div></div>
         </div>
-        ${a.replacementCost ? `<div class="mt-8"><span class="form-label">Est. Replacement Cost</span><div style="font-size:14px;margin-top:3px;font-weight:600;color:var(--green)">${esc(a.replacementCost)}</div></div>` : ''}
-        ${a.notes ? `<div class="mt-8"><span class="form-label">Notes</span><div style="font-size:14px;margin-top:4px">${esc(a.notes)}</div></div>` : ''}
+        ${a.sessionName ? `<div class="mt-8"><span class="form-label">Session</span><div style="font-size:13px;margin-top:3px;color:var(--blue)">${esc(a.sessionName)}</div></div>` : ''}
+        ${a.estimatedLifecycle ? `<div class="mt-8"><span class="form-label">Est. Lifecycle</span><div style="font-size:13px;margin-top:3px">${esc(a.estimatedLifecycle)}</div></div>` : ''}
+        ${a.replacementCost ? `<div class="mt-8"><span class="form-label">Est. Replacement Cost</span><div style="font-size:14px;margin-top:3px;font-weight:700;color:var(--green)">${esc(a.replacementCost)}</div></div>` : ''}
+        ${a.isObsolete && a.replacementModel ? `<div class="mt-8"><span class="form-label">⚠️ Replacement Model</span><div style="font-size:13px;margin-top:3px">${esc(a.replacementModel)}${a.replacementMSRP?' ($'+Number(a.replacementMSRP).toLocaleString()+')':''}</div></div>` : ''}
+        ${a.notes ? `<div class="mt-8"><span class="form-label">Notes</span><div style="font-size:13px;margin-top:4px">${esc(a.notes)}</div></div>` : ''}
         <div class="asset-actions">
-          <button class="btn btn-outline" style="flex:1;min-height:44px;font-size:14px" onclick="openEditModal('${a.id}')">✏️ Edit</button>
-          <button class="btn btn-danger" style="min-height:44px;padding:10px 16px;font-size:14px" onclick="deleteAsset('${a.id}')">🗑️</button>
+          <button class="btn btn-outline" style="flex:1;min-height:42px;font-size:13px" onclick="openEditModal('${a.id}')">✏️ Edit</button>
+          <button class="btn btn-danger" style="min-height:42px;padding:10px 16px;font-size:13px" onclick="deleteAsset('${a.id}')">🗑️</button>
         </div>
       </div>
     </div>`;
@@ -830,7 +1339,7 @@ function renderAssets(assets) {
 
 function esc(s) {
   if (!s) return '';
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function toggleExpand(id) {
@@ -852,8 +1361,9 @@ function openEditModal(id) {
   const a = allAssets.find(x => x.id === id);
   if (!a) return;
   const imgUrl = getObjUrl(a);
+  const condMap = { 'Good':'sel-Good','Fair':'sel-Fair','Poor':'sel-Poor','Non-Functional':'sel-NonFunctional' };
   document.getElementById('editModalBody').innerHTML = `
-    ${imgUrl ? `<img src="${imgUrl}" style="width:100%;border-radius:10px;margin-bottom:14px;max-height:200px;object-fit:contain;background:#f0f4f8;cursor:zoom-in" onclick="viewImage('${imgUrl}')">` : ''}
+    ${imgUrl ? `<img src="${imgUrl}" style="width:100%;border-radius:10px;margin-bottom:13px;max-height:180px;object-fit:contain;background:#f0f4f8;cursor:zoom-in" onclick="viewImage('${imgUrl}')">` : ''}
     <div class="form-group"><label class="form-label">Equipment Type</label><input class="form-input" id="e-equipmentType" value="${esc(a.equipmentType)}"></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Make</label><input class="form-input" id="e-make" value="${esc(a.make)}"></div>
@@ -866,6 +1376,16 @@ function openEditModal(id) {
     </div>
     <div class="form-group"><label class="form-label">Est. Replacement Cost</label><input class="form-input" id="e-replacementCost" value="${esc(a.replacementCost)}" placeholder="e.g. $15,000"></div>
     <div class="form-group"><label class="form-label">Location</label><input class="form-input" id="e-location" value="${esc(a.location)}"></div>
+    <div class="form-group">
+      <label class="form-label">Condition</label>
+      <div class="condition-group">
+        ${['Good','Fair','Poor','Non-Functional'].map(c => {
+          const sel = a.condition === c ? `sel-${c.replace(/[^a-zA-Z]/g,'')}` : '';
+          return `<button class="condition-btn ${sel}" onclick="editSetCondition('${c}',this)">${c==='Good'?'✅':c==='Fair'?'🟡':c==='Poor'?'🟠':'🔴'} ${c}</button>`;
+        }).join('')}
+      </div>
+      <input type="hidden" id="e-condition" value="${esc(a.condition)}">
+    </div>
     <div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" id="e-notes">${esc(a.notes)}</textarea></div>
     <button class="btn btn-success btn-full" onclick="saveEdit()" style="margin-bottom:8px">💾 Save Changes</button>
     <button class="btn btn-outline btn-full" onclick="closeEditModal()">Cancel</button>
@@ -874,16 +1394,20 @@ function openEditModal(id) {
   document.getElementById('editModal').classList.add('open');
 }
 
-function closeEditModal() {
-  document.getElementById('editModal').classList.remove('open');
-  editingId = null;
+function editSetCondition(value, btn) {
+  const safeVal = value.replace(/[^a-zA-Z]/g, '');
+  btn.closest('.condition-group').querySelectorAll('.condition-btn').forEach(b => b.className = 'condition-btn');
+  btn.className = `condition-btn sel-${safeVal}`;
+  document.getElementById('e-condition').value = value;
 }
+
+function closeEditModal() { document.getElementById('editModal').classList.remove('open'); editingId = null; }
 
 async function saveEdit() {
   if (!editingId) return;
   const a = allAssets.find(x => x.id === editingId);
   if (!a) return;
-  const fields = ['equipmentType','make','modelNumber','serialNumber','yearOfService','estimatedLifecycle','replacementCost','location','notes'];
+  const fields = ['equipmentType','make','modelNumber','serialNumber','yearOfService','estimatedLifecycle','replacementCost','location','notes','condition'];
   const updated = { ...a };
   fields.forEach(f => { updated[f] = document.getElementById('e-' + f)?.value.trim() || ''; });
   try {
@@ -897,11 +1421,67 @@ async function saveEdit() {
 async function deleteAsset(id) {
   if (!confirm('Delete this asset? This cannot be undone.')) return;
   try {
+    const a = allAssets.find(x => x.id === id);
     await DB.delete(id);
     if (objUrls.has(id)) { URL.revokeObjectURL(objUrls.get(id)); objUrls.delete(id); }
+    if (a) {
+      const label = [a.make, a.modelNumber || a.equipmentType].filter(Boolean).join(' ');
+      await logSessionAction(`Deleted: ${label || 'Asset'}`);
+    }
     showToast('🗑️ Asset deleted');
     loadAssets();
   } catch (err) { showToast('❌ ' + err.message); }
+}
+
+// ══════════════ REVIEW MODAL ══════════════
+async function openReviewModal() {
+  if (!activeSession) return;
+  const assets = (await DB.getAll()).filter(a => a.sessionId === activeSession.id);
+  const totalCost = assets.reduce((s,a) => s + (parseCost(a.replacementCost)||0), 0);
+  document.getElementById('reviewSummary').innerHTML = `
+    <div style="background:#e3f2fd;border-radius:10px;padding:12px 14px;font-size:14px">
+      <strong>${assets.length}</strong> asset${assets.length!==1?'s':''} in this session
+      ${totalCost > 0 ? ` · Est. replacement total: <strong>$${totalCost.toLocaleString()}</strong>` : ''}
+    </div>`;
+  document.getElementById('reviewList').innerHTML = assets.length
+    ? assets.map(a => {
+        const imgUrl = getObjUrl(a);
+        const thumb = imgUrl
+          ? `<img class="review-thumb" src="${imgUrl}" alt="">`
+          : `<div class="review-thumb-ph">⚙️</div>`;
+        const condCls = { 'Good':'tag-green','Fair':'tag-amber','Poor':'tag-orange','Non-Functional':'tag-red' }[a.condition] || '';
+        return `
+          <div class="review-asset">
+            ${thumb}
+            <div class="review-info">
+              <div class="review-make">${esc(a.make)||'Unknown Make'}</div>
+              <div class="review-model">${esc(a.modelNumber)||'—'}</div>
+              <div class="review-detail">${esc(a.location)||'No location'} ${a.condition?'· <span class="tag '+condCls+'" style="font-size:10px">'+esc(a.condition)+'</span>':''}</div>
+            </div>
+            <button onclick="removeFromSession('${a.id}')" style="background:none;border:none;font-size:18px;cursor:pointer;padding:6px;color:var(--text-muted)">🗑️</button>
+          </div>`;
+      }).join('')
+    : '<div class="empty-state"><div class="empty-icon">📦</div><p>No assets in this session</p></div>';
+  document.getElementById('reviewModal').classList.add('open');
+}
+
+function closeReviewModal() { document.getElementById('reviewModal').classList.remove('open'); }
+
+async function removeFromSession(id) {
+  if (!confirm('Remove this asset from the session?')) return;
+  try {
+    await DB.delete(id);
+    if (objUrls.has(id)) { URL.revokeObjectURL(objUrls.get(id)); objUrls.delete(id); }
+    updateBadge();
+    await openReviewModal();
+  } catch (err) { showToast('❌ ' + err.message); }
+}
+
+async function exportSession() {
+  if (!activeSession) return;
+  closeReviewModal();
+  const assets = (await DB.getAll()).filter(a => a.sessionId === activeSession.id);
+  await buildExcel(assets, activeSession.name);
 }
 
 // ══════════════ CAPITAL PROJECTION HELPERS ══════════════
@@ -945,9 +1525,14 @@ function calcAssetProjection(a) {
 }
 
 // ══════════════ EXCEL EXPORT ══════════════
-async function exportExcel() {
-  const assets = await DB.getAll();
-  if (!assets.length) { showToast('No assets to export yet'); return; }
+async function exportExcelSession(sessionId, sessionName) {
+  const assets = (await DB.getAll()).filter(a => a.sessionId === sessionId);
+  if (!assets.length) { showToast('No assets in this session'); return; }
+  await buildExcel(assets, sessionName);
+}
+
+async function buildExcel(assets, sessionLabel) {
+  if (!assets.length) { showToast('No assets to export'); return; }
 
   const propName    = getPropertyName() || 'Equipment Asset Survey';
   const dateStr     = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
@@ -955,7 +1540,6 @@ async function exportExcel() {
   const projYears   = Array.from({ length: 11 }, (_, i) => currentYear + i);
   const wb = XLSX.utils.book_new();
 
-  // ── Style definitions ───────────────────────────────────────
   const NAVY  = '0F4C75';
   const BLUE  = '1B6CA8';
   const WHITE = 'FFFFFF';
@@ -972,7 +1556,6 @@ async function exportExcel() {
     even:      { font:{sz:10,name:'Calibri'}, fill:{fgColor:{rgb:ALT},patternType:'solid'},   alignment:{vertical:'center'} },
     odd:       { font:{sz:10,name:'Calibri'}, fill:{fgColor:{rgb:WHITE},patternType:'solid'}, alignment:{vertical:'center'} },
     total:     { font:{bold:true,sz:10,color:{rgb:NAVY},name:'Calibri'}, fill:{fgColor:{rgb:TOTAL_BG},patternType:'solid'}, alignment:{vertical:'center'}, border:{top:{style:'medium',color:{rgb:BLUE}}} },
-    totalR:    { font:{bold:true,sz:10,color:{rgb:NAVY},name:'Calibri'}, fill:{fgColor:{rgb:TOTAL_BG},patternType:'solid'}, alignment:{horizontal:'right',vertical:'center'}, border:{top:{style:'medium',color:{rgb:BLUE}}} },
     center:    (base) => ({...base, alignment:{...base.alignment,horizontal:'center',vertical:'center'}}),
     right:     (base) => ({...base, alignment:{...base.alignment,horizontal:'right',vertical:'center'}}),
   };
@@ -984,16 +1567,19 @@ async function exportExcel() {
     'LOW':         { font:{sz:10,color:{rgb:'2E7D32'},name:'Calibri'},           fill:{fgColor:{rgb:'E8F5E9'},patternType:'solid'}, alignment:{horizontal:'center',vertical:'center'} },
     'Unknown':     { font:{sz:10,color:{rgb:'607080'},name:'Calibri'},           fill:{fgColor:{rgb:'F5F5F5'},patternType:'solid'}, alignment:{horizontal:'center',vertical:'center'} },
   };
+  const conditionStyle = {
+    'Good':           { font:{sz:10,color:{rgb:'1B5E20'},name:'Calibri'}, fill:{fgColor:{rgb:'E8F5E9'},patternType:'solid'}, alignment:{horizontal:'center',vertical:'center'} },
+    'Fair':           { font:{sz:10,color:{rgb:'B45309'},name:'Calibri'}, fill:{fgColor:{rgb:'FEF3C7'},patternType:'solid'}, alignment:{horizontal:'center',vertical:'center'} },
+    'Poor':           { font:{bold:true,sz:10,color:{rgb:'C2410C'},name:'Calibri'}, fill:{fgColor:{rgb:'FFEDD5'},patternType:'solid'}, alignment:{horizontal:'center',vertical:'center'} },
+    'Non-Functional': { font:{bold:true,sz:10,color:{rgb:'991B1B'},name:'Calibri'}, fill:{fgColor:{rgb:'FEE2E2'},patternType:'solid'}, alignment:{horizontal:'center',vertical:'center'} },
+  };
 
-  // ── Helpers ─────────────────────────────────────────────────
   function sc(ws, r, c, style) {
     const ref = XLSX.utils.encode_cell({r, c});
     if (!ws[ref]) ws[ref] = {v:'', t:'s'};
     ws[ref].s = style;
   }
-  function sr(ws, r, numCols, style) {
-    for (let c = 0; c < numCols; c++) sc(ws, r, c, style);
-  }
+  function sr(ws, r, numCols, style) { for (let c = 0; c < numCols; c++) sc(ws, r, c, style); }
   function setCurrency(ws, r, c, baseStyle) {
     const ref = XLSX.utils.encode_cell({r, c});
     if (ws[ref]) { ws[ref].s = S.right(baseStyle); ws[ref].z = '$#,##0'; }
@@ -1002,17 +1588,11 @@ async function exportExcel() {
     const ref = XLSX.utils.encode_cell({r, c});
     if (ws[ref]) { ws[ref].s = S.center(baseStyle); }
   }
-  // Title block: rows 0=header bar, 1=subtitle bar, 2=blank, 3=col headers
-  // Returns the first data row index (4)
-  function addTitleBlock(ws, title, subtitle, numCols) {
-    // Fill background across all title/subtitle columns
+  function addTitleBlock(ws, numCols) {
     for (let c = 0; c < numCols; c++) {
       sc(ws, 0, c, c < numCols - 1 ? S.titleLeft : S.titleRight);
       sc(ws, 1, c, c < numCols - 1 ? S.sub : S.subRight);
     }
-    // Overwrite text cells (already set by aoa_to_sheet, just re-style)
-    sc(ws, 0, 0, S.titleLeft);
-    sc(ws, 1, 0, S.sub);
     ws['!merges'] = [
       {s:{r:0,c:0}, e:{r:0,c:numCols-2}},
       {s:{r:1,c:0}, e:{r:1,c:numCols-1}},
@@ -1025,51 +1605,56 @@ async function exportExcel() {
     return 4;
   }
 
-  // ── Sheet 1: Asset Inventory ─────────────────────────────────
+  // Sheet 1: Asset Inventory
   const invCols = [
-    {h:'#',              wch:4},  {h:'Survey Date',     wch:12},
-    {h:'Equipment Type', wch:20}, {h:'Make',            wch:14},
-    {h:'Model Number',   wch:18}, {h:'Serial Number',   wch:18},
-    {h:'Location',       wch:22}, {h:'Year of\nService',wch:10},
-    {h:'Est.\nLifecycle',wch:12}, {h:'Age\n(yrs)',      wch:8},
-    {h:'Remaining\nLife',wch:12}, {h:'Replace\nYear',   wch:10},
-    {h:'Priority',       wch:14}, {h:'Est. Replacement\nCost', wch:18},
-    {h:'Notes',          wch:32}, {h:'Photo',           wch:7}
+    {h:'#',wch:4}, {h:'Survey Date',wch:12}, {h:'Equipment Type',wch:20},
+    {h:'Make',wch:14}, {h:'Model Number',wch:18}, {h:'Serial Number',wch:18},
+    {h:'Location',wch:22}, {h:'Condition',wch:14}, {h:'Year of\nService',wch:10},
+    {h:'Est.\nLifecycle',wch:12}, {h:'Age\n(yrs)',wch:8}, {h:'Remaining\nLife',wch:12},
+    {h:'Replace\nYear',wch:10}, {h:'Priority',wch:14}, {h:'MSRP',wch:14},
+    {h:'Est. Replacement\nCost',wch:18}, {h:'Obsolete?',wch:10},
+    {h:'Replacement Model',wch:22}, {h:'Notes',wch:32}
   ];
   const knownCost = assets.reduce((s,a)=>s+(parseCost(a.replacementCost)||0),0);
   const inv1 = [
-    [propName + '  —  Capital Expenditure Asset Inventory', ...Array(invCols.length-2).fill(''), `${assets.length} Assets`],
+    [`${propName}  —  ${sessionLabel}  |  Capital Asset Inventory`, ...Array(invCols.length-2).fill(''), `${assets.length} Assets`],
     [`Generated: ${dateStr}   |   Known Replacement Cost Total: ${knownCost>0?'$'+knownCost.toLocaleString():'TBD'}`, ...Array(invCols.length-1).fill('')],
     Array(invCols.length).fill(''),
     invCols.map(c=>c.h),
     ...assets.map((a,i)=>{
-      const {age,remLife,replYear,priority}=calcAssetProjection(a); const cost=parseCost(a.replacementCost);
-      return [i+1, new Date(a.timestamp).toLocaleDateString('en-US'), a.equipmentType||'', a.make||'', a.modelNumber||'', a.serialNumber||'', a.location||'', a.yearOfService||'', a.estimatedLifecycle||'', age??'', remLife??'', replYear||'', priority, cost!==null?cost:(a.replacementCost||''), a.notes||'', a.imageBlob?'Yes':''];
+      const {age,remLife,replYear,priority}=calcAssetProjection(a);
+      const cost=parseCost(a.replacementCost);
+      return [i+1, new Date(a.timestamp).toLocaleDateString('en-US'), a.equipmentType||'', a.make||'',
+        a.modelNumber||'', a.serialNumber||'', a.location||'', a.condition||'',
+        a.yearOfService||'', a.estimatedLifecycle||'', age??'', remLife??'', replYear||'', priority,
+        a.msrp||'', cost!==null?cost:(a.replacementCost||''),
+        a.isObsolete?'Yes':'', a.replacementModel||'', a.notes||''];
     }),
-    ['','TOTALS',`${assets.length} assets`,'','','','','','','','','','', knownCost>0?knownCost:'','','']
+    ['','TOTALS',`${assets.length} assets`,'','','','','','','','','','','','',knownCost>0?knownCost:'','','','']
   ];
   const ws1 = XLSX.utils.aoa_to_sheet(inv1);
   ws1['!cols'] = invCols.map(c=>({wch:c.wch}));
-  addTitleBlock(ws1, inv1[0][0], inv1[1][0], invCols.length);
+  addTitleBlock(ws1, invCols.length);
   invCols.forEach((_,c)=>sc(ws1,3,c,S.header));
-  assets.forEach((_,i)=>{
+  assets.forEach((a,i)=>{
     const r=i+4; const base=i%2===0?S.even:S.odd;
-    const {priority}=calcAssetProjection(assets[i]);
+    const {priority}=calcAssetProjection(a);
     invCols.forEach((_,c)=>{
-      if(c===12) sc(ws1,r,c,PS[priority]||PS['Unknown']);
-      else if(c===13) setCurrency(ws1,r,c,base);
-      else if([9,10,11].includes(c)) setNumber(ws1,r,c,base);
+      if(c===7) sc(ws1,r,c,(conditionStyle[a.condition]||base));
+      else if(c===13) sc(ws1,r,c,PS[priority]||PS['Unknown']);
+      else if(c===14||c===15) setCurrency(ws1,r,c,base);
+      else if([10,11,12].includes(c)) setNumber(ws1,r,c,base);
       else sc(ws1,r,c,base);
     });
     if(!ws1['!rows']) ws1['!rows']=[];
     ws1['!rows'][r]={hpt:20};
   });
-  const invTotalR = assets.length+4;
-  invCols.forEach((_,c)=>{ if(c===13) setCurrency(ws1,invTotalR,c,S.total); else sc(ws1,invTotalR,c,c===1||c===2?{...S.total,font:{...S.total.font,sz:10}}:S.total); });
+  const invTR=assets.length+4;
+  invCols.forEach((_,c)=>{ if(c===15) setCurrency(ws1,invTR,c,S.total); else sc(ws1,invTR,c,S.total); });
   ws1['!freeze']={xSplit:0,ySplit:4};
   XLSX.utils.book_append_sheet(wb, ws1, 'Asset Inventory');
 
-  // ── Sheet 2: Capital Projection ──────────────────────────────
+  // Sheet 2: Capital Projection
   const projItems = assets
     .map(a=>({a,...calcAssetProjection(a),cost:parseCost(a.replacementCost)}))
     .filter(x=>x.replYear!==null).sort((a,b)=>a.replYear-b.replYear);
@@ -1077,42 +1662,43 @@ async function exportExcel() {
   const projCols = [
     {h:'Replace\nYear',wch:10},{h:'Priority',wch:14},{h:'Equipment Type',wch:20},
     {h:'Make',wch:14},{h:'Model Number',wch:18},{h:'Serial Number',wch:18},
-    {h:'Location',wch:22},{h:'Year of\nService',wch:10},{h:'Age at\nReplace',wch:10},
-    {h:'Est. Replacement\nCost',wch:18},{h:'Notes',wch:32}
+    {h:'Location',wch:22},{h:'Condition',wch:14},{h:'Year of\nService',wch:10},
+    {h:'Age at\nReplace',wch:10},{h:'Est. Replacement\nCost',wch:18},{h:'Notes',wch:32}
   ];
   const proj1 = [
-    [propName + '  —  Capital Expenditure Projection', ...Array(projCols.length-2).fill(''), `${projItems.length} Items`],
+    [`${propName}  —  ${sessionLabel}  |  Capital Expenditure Projection`, ...Array(projCols.length-2).fill(''), `${projItems.length} Items`],
     [`Generated: ${dateStr}   |   Sorted: Earliest Replacement First   |   Total Known Cost: ${projTotalCost>0?'$'+projTotalCost.toLocaleString():'TBD'}`, ...Array(projCols.length-1).fill('')],
     Array(projCols.length).fill(''),
     projCols.map(c=>c.h),
     ...(projItems.length ? projItems.map(({a,age,replYear,priority,cost})=>[
       replYear, priority, a.equipmentType||'', a.make||'', a.modelNumber||'', a.serialNumber||'',
-      a.location||'', a.yearOfService||'', age!==null?age+(replYear-currentYear):'',
-      cost!==null?cost:(a.replacementCost||''), a.notes||''
-    ]) : [['','','Add Year of Service & Lifecycle to assets to generate projections','','','','','','','','']]),
-    ['GRAND TOTAL','',`${projItems.length} items scheduled`,'','','','','','',projTotalCost>0?projTotalCost:'','']
+      a.location||'', a.condition||'', a.yearOfService||'',
+      age!==null?age+(replYear-currentYear):'', cost!==null?cost:(a.replacementCost||''), a.notes||''
+    ]) : [['','','Add Year of Service & Lifecycle to assets to generate projections','','','','','','','','','']]),
+    ['GRAND TOTAL','',`${projItems.length} items scheduled`,'','','','','','','',projTotalCost>0?projTotalCost:'','']
   ];
   const ws2 = XLSX.utils.aoa_to_sheet(proj1);
   ws2['!cols'] = projCols.map(c=>({wch:c.wch}));
-  addTitleBlock(ws2, proj1[0][0], proj1[1][0], projCols.length);
+  addTitleBlock(ws2, projCols.length);
   projCols.forEach((_,c)=>sc(ws2,3,c,S.header));
-  projItems.forEach((_,i)=>{
-    const r=i+4; const base=i%2===0?S.even:S.odd; const priority=projItems[i].priority;
+  projItems.forEach((pi,i)=>{
+    const r=i+4; const base=i%2===0?S.even:S.odd; const priority=pi.priority;
     projCols.forEach((_,c)=>{
       if(c===1) sc(ws2,r,c,PS[priority]||PS['Unknown']);
-      else if(c===9) setCurrency(ws2,r,c,base);
-      else if([0,8].includes(c)) setNumber(ws2,r,c,base);
+      else if(c===7) sc(ws2,r,c,(conditionStyle[pi.a.condition]||base));
+      else if(c===10) setCurrency(ws2,r,c,base);
+      else if([0,9].includes(c)) setNumber(ws2,r,c,base);
       else sc(ws2,r,c,base);
     });
     if(!ws2['!rows']) ws2['!rows']=[];
     ws2['!rows'][r]={hpt:20};
   });
   const projTR=projItems.length+4;
-  projCols.forEach((_,c)=>{ if(c===9) setCurrency(ws2,projTR,c,S.total); else sc(ws2,projTR,c,S.total); });
+  projCols.forEach((_,c)=>{ if(c===10) setCurrency(ws2,projTR,c,S.total); else sc(ws2,projTR,c,S.total); });
   ws2['!freeze']={xSplit:0,ySplit:4};
   XLSX.utils.book_append_sheet(wb, ws2, 'Capital Projection');
 
-  // ── Sheet 3: 10-Year Budget Summary ──────────────────────────
+  // Sheet 3: 10-Year Summary
   const sumCols = [{h:'Year',wch:8},{h:'Items\nDue',wch:8},{h:'Equipment Due for Replacement',wch:52},{h:'Est. Total\nCost',wch:16},{h:'Notes',wch:18}];
   const grandTotal = projYears.reduce((s,yr)=>s+assets.filter(a=>calcAssetProjection(a).replYear===yr).reduce((s2,a)=>s2+(parseCost(a.replacementCost)||0),0),0);
   const sumRows = projYears.map(yr=>{
@@ -1122,14 +1708,14 @@ async function exportExcel() {
     return { yr, count:items.length,
       row:[yr, items.length||'',
         items.map(a=>[a.equipmentType,a.make,a.modelNumber].filter(Boolean).join(' – ')).join('; ')||'—',
-        cost>0?cost:(items.length?null:null),
+        cost>0?cost:null,
         hasUnknown&&cost===0?'Costs TBD':hasUnknown?'+ some TBD':''
       ]
     };
   });
   const sum1=[
-    [propName + `  —  ${currentYear}–${currentYear+10} Capital Budget Summary`, ...Array(sumCols.length-2).fill(''), `Total: ${grandTotal>0?'$'+grandTotal.toLocaleString():'TBD'}`],
-    [`Generated: ${dateStr}   |   ${currentYear}–${currentYear+10} 10-Year Planning Horizon`, ...Array(sumCols.length-1).fill('')],
+    [`${propName}  —  ${currentYear}–${currentYear+10} Capital Budget Summary`, ...Array(sumCols.length-2).fill(''), `Total: ${grandTotal>0?'$'+grandTotal.toLocaleString():'TBD'}`],
+    [`Generated: ${dateStr}   |   Session: ${sessionLabel}   |   ${currentYear}–${currentYear+10} Planning Horizon`, ...Array(sumCols.length-1).fill('')],
     Array(sumCols.length).fill(''),
     sumCols.map(c=>c.h),
     ...sumRows.map(x=>x.row),
@@ -1137,12 +1723,12 @@ async function exportExcel() {
   ];
   const ws3=XLSX.utils.aoa_to_sheet(sum1);
   ws3['!cols']=sumCols.map(c=>({wch:c.wch}));
-  addTitleBlock(ws3, sum1[0][0], sum1[1][0], sumCols.length);
+  addTitleBlock(ws3, sumCols.length);
   sumCols.forEach((_,c)=>sc(ws3,3,c,S.header));
   sumRows.forEach((x,i)=>{
     const r=i+4;
-    const hasDue = x.count>0;
-    const base = hasDue
+    const hasDue=x.count>0;
+    const base=hasDue
       ? {font:{bold:true,sz:10,name:'Calibri'},fill:{fgColor:{rgb:'EBF5FB'},patternType:'solid'},alignment:{vertical:'center'}}
       : (i%2===0?S.even:S.odd);
     x.row.forEach((_,c)=>{
@@ -1158,12 +1744,12 @@ async function exportExcel() {
   ws3['!freeze']={xSplit:0,ySplit:4};
   XLSX.utils.book_append_sheet(wb, ws3, `${currentYear}–${currentYear+10} Summary`);
 
-  // ── Download ──────────────────────────────────────────────────
   const buf  = XLSX.write(wb, { type: 'array', bookType: 'xlsx', cellStyles: true });
   const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const url  = URL.createObjectURL(blob);
   const dl   = document.createElement('a');
-  dl.href = url; dl.download = `capital-projection-${new Date().toISOString().slice(0,10)}.xlsx`;
+  const safeName = sessionLabel.replace(/[^a-z0-9]/gi, '-').toLowerCase().slice(0, 40);
+  dl.href = url; dl.download = `capital-projection-${safeName}-${new Date().toISOString().slice(0,10)}.xlsx`;
   document.body.appendChild(dl); dl.click(); document.body.removeChild(dl);
   URL.revokeObjectURL(url);
   showToast('⬇️ Capital projection downloading…');
@@ -1171,7 +1757,6 @@ async function exportExcel() {
 
 // ══════════════ SETTINGS ══════════════
 function getPropertyName() { return localStorage.getItem('property_name') || ''; }
-
 function openSettings() {
   document.getElementById('apiKeyInput').value = getApiKey();
   document.getElementById('propertyNameInput').value = getPropertyName();
@@ -1188,40 +1773,32 @@ function saveSettings() {
   showToast('✅ Settings saved');
 }
 
-// ══════════════ INSTALL (HOME SCREEN) ══════════════
-function showInstallModal() {
-  document.getElementById('installBanner').style.display = 'none';
-  document.getElementById('installModal').classList.add('open');
-}
+// ══════════════ INSTALL ══════════════
+function showInstallModal() { document.getElementById('installBanner').style.display='none'; document.getElementById('installModal').classList.add('open'); }
 function closeInstallModal() { document.getElementById('installModal').classList.remove('open'); }
-function dismissBanner() {
-  document.getElementById('installBanner').style.display = 'none';
-  localStorage.setItem('install_dismissed', '1');
-}
-
+function dismissBanner() { document.getElementById('installBanner').style.display='none'; localStorage.setItem('install_dismissed','1'); }
 function checkInstallBanner() {
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  const isStandalone = window.navigator.standalone === true;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+  const isStandalone = window.navigator.standalone===true;
   const dismissed = localStorage.getItem('install_dismissed');
-  if (isIOS && !isStandalone && !dismissed) {
-    document.getElementById('installBanner').style.display = 'flex';
-  }
+  if (isIOS && !isStandalone && !dismissed) document.getElementById('installBanner').style.display='flex';
 }
 
 // Close modals on overlay tap
-['settingsModal','editModal','installModal'].forEach(id => {
-  document.getElementById(id).addEventListener('click', e => { if (e.target.id === id) document.getElementById(id).classList.remove('open'); });
+['settingsModal','editModal','installModal','reviewModal','logModal'].forEach(id => {
+  document.getElementById(id).addEventListener('click', e => {
+    if (e.target.id === id) document.getElementById(id).classList.remove('open');
+  });
 });
-document.getElementById('imgViewer').addEventListener('click', e => { if (e.target.id === 'imgViewer') closeImgViewer(); });
+document.getElementById('imgViewer').addEventListener('click', e => { if (e.target.id==='imgViewer') closeImgViewer(); });
 
 // ══════════════ INIT ══════════════
-DB.init().then(() => {
+DB.init().then(async () => {
   updateKeyIndicator();
   updateBadge();
   checkInstallBanner();
-  if (!getApiKey()) {
-    setTimeout(() => openSettings(), 600);
-  }
+  await loadActiveSession();
+  if (!getApiKey()) setTimeout(() => openSettings(), 600);
 }).catch(err => showToast('❌ Storage error: ' + err.message));
 </script>
 </body>
