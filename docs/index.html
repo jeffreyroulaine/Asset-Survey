@@ -513,7 +513,25 @@
   </div>
 </div>
 
-<!-- ══════════════ SESSION LOG MODAL ══════════════ -->
+<!-- ══════════════ END SESSION MODAL ══════════════ -->
+<div class="modal-overlay" id="endSessionModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⏹ End Session</div>
+    <div class="modal-body">
+      <div id="endSessionMsg" style="font-size:15px;color:var(--text);margin-bottom:20px;line-height:1.5"></div>
+      <div class="alert alert-warning" style="margin-bottom:16px">
+        ⚠️ <strong>Export before ending.</strong> Assets are stored in this browser — clearing Safari data permanently deletes them. An exported Excel file is your backup.
+      </div>
+      <button class="btn btn-success btn-full" onclick="exportThenEnd()" style="margin-bottom:10px">⬇️ Export &amp; End Session</button>
+      <button class="btn btn-outline btn-full" onclick="endWithoutExport()" style="margin-bottom:10px">End Without Exporting</button>
+      <button class="btn btn-ghost btn-full" onclick="closeEndSessionModal()" style="background:var(--bg);color:var(--text-muted);border:none">Cancel</button>
+      <div style="height:8px"></div>
+    </div>
+  </div>
+</div>
+
+
 <div class="modal-overlay" id="logModal">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
@@ -885,9 +903,26 @@ async function startSession() {
 
 async function confirmEndSession() {
   if (!activeSession) return;
-  const count = allAssets.filter(a => a.sessionId === activeSession.id).length ||
-    (await DB.getAll()).filter(a => a.sessionId === activeSession.id).length;
-  if (!confirm(`End "${activeSession.name}"? It has ${count} asset${count!==1?'s':''} recorded.`)) return;
+  const assets = await DB.getAll();
+  const count = assets.filter(a => a.sessionId === activeSession.id).length;
+  const msg = document.getElementById('endSessionMsg');
+  msg.innerHTML = `<strong>${esc(activeSession.name)}</strong><br>${count} asset${count!==1?'s':''} recorded in this session.`;
+  document.getElementById('endSessionModal').classList.add('open');
+}
+
+function closeEndSessionModal() {
+  document.getElementById('endSessionModal').classList.remove('open');
+}
+
+async function exportThenEnd() {
+  closeEndSessionModal();
+  if (!activeSession) return;
+  await exportExcelSession(activeSession.id, activeSession.name);
+  await endSession();
+}
+
+async function endWithoutExport() {
+  closeEndSessionModal();
   await endSession();
 }
 
@@ -1797,12 +1832,28 @@ async function buildExcel(assets, sessionLabel) {
   ws3['!freeze']={xSplit:0,ySplit:4};
   XLSX.utils.book_append_sheet(wb, ws3, `${currentYear}–${currentYear+10} Summary`);
 
-  const buf  = XLSX.write(wb, { type: 'array', bookType: 'xlsx', cellStyles: true });
-  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  const url  = URL.createObjectURL(blob);
-  const dl   = document.createElement('a');
+  const buf      = XLSX.write(wb, { type: 'array', bookType: 'xlsx', cellStyles: true });
   const safeName = sessionLabel.replace(/[^a-z0-9]/gi, '-').toLowerCase().slice(0, 40);
-  dl.href = url; dl.download = `capital-projection-${safeName}-${new Date().toISOString().slice(0,10)}.xlsx`;
+  const filename = `capital-projection-${safeName}-${new Date().toISOString().slice(0,10)}.xlsx`;
+  const mimeXlsx = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  const blob     = new Blob([buf], { type: mimeXlsx });
+
+  // Use iOS/Android native share sheet when available
+  const file = new File([buf], filename, { type: mimeXlsx });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: `Capital Projection — ${sessionLabel}` });
+      return;
+    } catch (e) {
+      if (e.name === 'AbortError') return; // user dismissed share sheet
+      // fall through to link download
+    }
+  }
+
+  // Fallback for desktop browsers
+  const url = URL.createObjectURL(blob);
+  const dl  = document.createElement('a');
+  dl.href = url; dl.download = filename;
   document.body.appendChild(dl); dl.click(); document.body.removeChild(dl);
   URL.revokeObjectURL(url);
   showToast('⬇️ Capital projection downloading…');
@@ -1838,7 +1889,7 @@ function checkInstallBanner() {
 }
 
 // Close modals on overlay tap
-['settingsModal','editModal','installModal','reviewModal','logModal'].forEach(id => {
+['settingsModal','editModal','installModal','reviewModal','logModal','endSessionModal'].forEach(id => {
   document.getElementById(id).addEventListener('click', e => {
     if (e.target.id === id) document.getElementById(id).classList.remove('open');
   });
