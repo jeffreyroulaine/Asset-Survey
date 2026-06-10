@@ -228,6 +228,18 @@
     .key-indicator { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 4px 9px; border-radius: 20px; }
     .key-set { background: rgba(0,172,193,.25); color: #80deea; }
     .key-missing { background: rgba(255,152,0,.25); color: #ffcc80; }
+    .backup-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .backup-dot.ok   { background: #22c55e; }
+    .backup-dot.fail { background: #ef4444; }
+    .backup-dot.busy { background: #f59e0b; animation: pulse .8s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* Reference photo */
+    .ref-photo-zone { border: 2px dashed var(--border); border-radius: 10px; background: var(--bg); padding: 14px; text-align: center; cursor: pointer; transition: all .2s; }
+    .ref-photo-zone:active { background: #dde3ea; }
+    .ref-photo-zone .ref-preview-img { width: 100%; max-height: 160px; object-fit: contain; border-radius: 8px; display: none; }
+    .ref-photo-zone .ref-placeholder { font-size: 13px; color: var(--text-muted); }
+    #refFileInput { display: none; }
     .icon-btn { background: none; border: none; cursor: pointer; padding: 6px; font-size: 19px; color: rgba(255,255,255,.8); min-width: 34px; min-height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
     .icon-btn:active { background: rgba(255,255,255,.15); }
 
@@ -264,6 +276,7 @@
   </div>
   <div class="header-right">
     <span id="sessionIndicator" class="session-pill none">No Session</span>
+    <span id="backupIndicator" title="GitHub backup status" style="display:none;align-items:center;gap:4px;font-size:11px;color:rgba(255,255,255,.7);cursor:pointer" onclick="openSettings()"></span>
     <span id="keyIndicator" class="key-indicator key-missing">⚠️ Key</span>
     <button class="icon-btn" onclick="openSettings()" title="Settings">⚙️</button>
   </div>
@@ -394,6 +407,15 @@
             </div>
           </div>
           <div class="form-group">
+            <label class="form-label">Reference Photo — Full Equipment View (Optional)</label>
+            <div class="ref-photo-zone" id="refPhotoZone" onclick="triggerRefCapture()">
+              <img class="ref-preview-img" id="refPreview" alt="Reference photo">
+              <div class="ref-placeholder" id="refPlaceholder">📸 Tap to add a photo of the full unit</div>
+            </div>
+            <input type="file" id="refFileInput" accept="image/*" onchange="handleRefPhoto(event)">
+            <button id="refClearBtn" onclick="clearRefPhoto()" style="display:none;background:none;border:none;font-size:12px;color:var(--text-muted);margin-top:4px;cursor:pointer;padding:0">✕ Remove photo</button>
+          </div>
+          <div class="form-group">
             <label class="form-label">Notes</label>
             <textarea class="form-textarea" id="f-notes" placeholder="Observations, action items, follow-up needed…"></textarea>
           </div>
@@ -480,6 +502,21 @@
         <a href="https://console.anthropic.com/settings/keys" target="_blank" style="font-size:13px;color:var(--blue);text-decoration:none;font-weight:600">
           Get your key at console.anthropic.com →
         </a>
+      </div>
+      <div class="divider"></div>
+      <div class="alert alert-info" style="margin-bottom:14px">
+        ☁️ <strong>GitHub Backup</strong> — assets auto-backup to a private GitHub Gist after every save. If you ever lose your data, one tap restores it.
+      </div>
+      <div class="form-group">
+        <label class="form-label">GitHub Personal Access Token</label>
+        <input type="password" class="form-input" id="githubPATInput" placeholder="ghp_…" autocomplete="off" spellcheck="false">
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px">
+          Create at <strong>github.com → Settings → Developer settings → Personal access tokens → Tokens (classic)</strong> — enable the <strong>gist</strong> scope only.
+        </div>
+      </div>
+      <div id="backupStatusRow" style="display:none;margin-bottom:14px">
+        <div style="font-size:13px;color:var(--text-muted)" id="backupStatusText"></div>
+        <button class="btn btn-outline btn-sm" onclick="restoreFromGist()" style="margin-top:8px;width:100%">🔄 Restore Assets from Backup</button>
       </div>
       <button class="btn btn-primary btn-full" onclick="saveSettings()" style="margin-bottom:8px">Save Settings</button>
       <button class="btn btn-outline btn-full" onclick="closeSettings()">Cancel</button>
@@ -588,6 +625,97 @@ const MODEL = 'claude-sonnet-4-6';
 // ══════════════ API KEY ══════════════
 function getApiKey() { return localStorage.getItem('anthropic_api_key') || ''; }
 function setApiKey(k) { localStorage.setItem('anthropic_api_key', k.trim()); }
+
+// ══════════════ GITHUB GIST BACKUP ══════════════
+function getGithubPAT()  { return localStorage.getItem('github_pat') || ''; }
+function setGithubPAT(k) { localStorage.setItem('github_pat', k.trim()); }
+function getGistId()     { return localStorage.getItem('backup_gist_id') || ''; }
+function setGistId(id)   { localStorage.setItem('backup_gist_id', id); }
+
+function setBackupIndicator(state, label) {
+  const el = document.getElementById('backupIndicator');
+  if (!getGithubPAT()) { el.style.display = 'none'; return; }
+  el.style.display = 'inline-flex';
+  const dotClass = state === 'ok' ? 'ok' : state === 'busy' ? 'busy' : 'fail';
+  el.innerHTML = `<span class="backup-dot ${dotClass}"></span><span>${label}</span>`;
+}
+
+async function backupToGist() {
+  const pat = getGithubPAT();
+  if (!pat) return;
+  setBackupIndicator('busy', 'Saving…');
+  try {
+    const assets  = await DB.getAll();
+    const sessions = await DB.getAllSessions();
+    const payload  = { assets: assets.map(a => { const {imageBlob, referenceBlob, ...rest} = a; return rest; }), sessions };
+    const content  = JSON.stringify(payload, null, 2);
+    const propName = getPropertyName() || 'Asset Survey';
+    const gistId   = getGistId();
+    const headers  = { 'Authorization': `token ${pat}`, 'Content-Type': 'application/json' };
+    const body     = JSON.stringify({ description: `${propName} — Asset Survey Backup`, public: false, files: { 'asset-survey-backup.json': { content } } });
+
+    let res;
+    if (gistId) {
+      res = await fetch(`https://api.github.com/gists/${gistId}`, { method: 'PATCH', headers, body });
+    } else {
+      res = await fetch('https://api.github.com/gists', { method: 'POST', headers, body });
+    }
+    if (!res.ok) throw new Error(`GitHub ${res.status}`);
+    const data = await res.json();
+    setGistId(data.id);
+    const ts = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    localStorage.setItem('last_backup_time', ts);
+    setBackupIndicator('ok', `Backed up ${ts}`);
+    updateBackupStatusRow();
+  } catch (e) {
+    setBackupIndicator('fail', 'Backup failed');
+    console.warn('Gist backup error:', e);
+  }
+}
+
+async function restoreFromGist() {
+  const pat    = getGithubPAT();
+  const gistId = getGistId();
+  if (!pat)    { showToast('⚠️ No GitHub token set'); return; }
+  if (!gistId) { showToast('⚠️ No backup found — save an asset first to create one'); return; }
+  if (!confirm('This will replace ALL current app data with the backup. Continue?')) return;
+
+  setBackupIndicator('busy', 'Restoring…');
+  try {
+    const res  = await fetch(`https://api.github.com/gists/${gistId}`, { headers: { 'Authorization': `token ${pat}` } });
+    if (!res.ok) throw new Error(`GitHub ${res.status}`);
+    const data  = await res.json();
+    const raw   = data.files['asset-survey-backup.json']?.content;
+    if (!raw)   throw new Error('Backup file not found in Gist');
+    const { assets, sessions } = JSON.parse(raw);
+
+    for (const a of (assets  || [])) await DB.put(a);
+    for (const s of (sessions || [])) await DB.putSession(s);
+
+    await loadActiveSession();
+    await loadAssets();
+    updateBadge();
+    closeSettings();
+    showToast(`✅ Restored ${(assets||[]).length} assets`, 3500);
+    setBackupIndicator('ok', 'Restored');
+  } catch (e) {
+    setBackupIndicator('fail', 'Restore failed');
+    showToast('❌ Restore failed: ' + e.message);
+  }
+}
+
+function updateBackupStatusRow() {
+  const row     = document.getElementById('backupStatusRow');
+  const textEl  = document.getElementById('backupStatusText');
+  const gistId  = getGistId();
+  const lastTs  = localStorage.getItem('last_backup_time');
+  if (gistId) {
+    row.style.display = 'block';
+    textEl.textContent = lastTs ? `Last backup: ${lastTs}` : 'Backup Gist created';
+  } else {
+    row.style.display = 'none';
+  }
+}
 
 function updateKeyIndicator() {
   const el = document.getElementById('keyIndicator');
@@ -806,6 +934,7 @@ function fileToBase64(file) {
 // ══════════════ STATE ══════════════
 let currentFile = null;
 let currentBlob = null;
+let currentRefBlob = null;
 let allAssets = [];
 let allSessions = [];
 let editingId = null;
@@ -814,6 +943,7 @@ let lastLocation = '';
 let currentCondition = '';
 let isManualEntry = false;
 const objUrls = new Map();
+const refUrls = new Map();
 
 function makeId() {
   return crypto.randomUUID ? crypto.randomUUID()
@@ -1077,6 +1207,37 @@ function clearCapture() {
   document.getElementById('resultsSection').style.display = 'none';
 }
 
+// ══════════════ REFERENCE PHOTO ══════════════
+function triggerRefCapture() { document.getElementById('refFileInput').click(); }
+
+async function handleRefPhoto(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const resized = await resizeImage(file, 1200);
+  currentRefBlob = resized;
+  const url = URL.createObjectURL(resized);
+  const img = document.getElementById('refPreview');
+  img.src = url; img.style.display = 'block';
+  document.getElementById('refPlaceholder').style.display = 'none';
+  document.getElementById('refClearBtn').style.display = 'inline';
+}
+
+function clearRefPhoto() {
+  currentRefBlob = null;
+  const img = document.getElementById('refPreview');
+  if (img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
+  img.src = ''; img.style.display = 'none';
+  document.getElementById('refPlaceholder').style.display = 'block';
+  document.getElementById('refClearBtn').style.display = 'none';
+  document.getElementById('refFileInput').value = '';
+}
+
+function getRefObjUrl(asset) {
+  if (!asset.referenceBlob) return null;
+  if (!refUrls.has(asset.id)) refUrls.set(asset.id, URL.createObjectURL(asset.referenceBlob));
+  return refUrls.get(asset.id);
+}
+
 // ══════════════ MANUAL ENTRY ══════════════
 function setManualEntry() {
   isManualEntry = true;
@@ -1257,7 +1418,8 @@ async function saveAsset() {
       replacementMSRP: msrpData?.replacementMSRP || null,
       ...data,
       msrp: parseCost(data.msrp),
-      imageBlob: currentBlob || null
+      imageBlob: currentBlob || null,
+      referenceBlob: currentRefBlob || null
     };
     await DB.put(asset);
 
@@ -1269,11 +1431,13 @@ async function saveAsset() {
 
     showToast('✅ Asset saved!');
     updateBadge();
+    backupToGist();
 
     // Stay on survey tab — reset form and condition
     currentCondition = '';
     isManualEntry = false;
     clearCapture();
+    clearRefPhoto();
     populateForm({});
     clearConfidenceWarnings();
     document.getElementById('aiHint').value = '';
@@ -1293,6 +1457,7 @@ function resetSurvey() {
   currentCondition = '';
   isManualEntry = false;
   clearCapture();
+  clearRefPhoto();
   populateForm({});
   clearConfidenceWarnings();
   document.getElementById('aiHint').value = '';
@@ -1412,6 +1577,7 @@ function renderAssets(assets) {
         ${a.replacementCost ? `<div class="mt-8"><span class="form-label">Est. Replacement Cost</span><div style="font-size:14px;margin-top:3px;font-weight:700;color:var(--green)">${esc(a.replacementCost)}</div></div>` : ''}
         ${a.isObsolete && a.replacementModel ? `<div class="mt-8"><span class="form-label">⚠️ Replacement Model</span><div style="font-size:13px;margin-top:3px">${esc(a.replacementModel)}${a.replacementMSRP?' ($'+Number(a.replacementMSRP).toLocaleString()+')':''}</div></div>` : ''}
         ${a.notes ? `<div class="mt-8"><span class="form-label">Notes</span><div style="font-size:13px;margin-top:4px">${esc(a.notes)}</div></div>` : ''}
+        ${getRefObjUrl(a) ? `<div class="mt-8"><span class="form-label">Reference Photo</span><img src="${getRefObjUrl(a)}" style="width:100%;border-radius:8px;margin-top:5px;max-height:180px;object-fit:contain;background:var(--bg);cursor:zoom-in" onclick="viewImage('${getRefObjUrl(a)}',event)"></div>` : ''}
         <div class="asset-actions">
           <button class="btn btn-outline" style="flex:1;min-height:42px;font-size:13px" onclick="openEditModal('${a.id}')">✏️ Edit</button>
           <button class="btn btn-danger" style="min-height:42px;padding:10px 16px;font-size:13px" onclick="deleteAsset('${a.id}')">🗑️</button>
@@ -1503,6 +1669,7 @@ async function saveEdit() {
     showToast('✅ Asset updated');
     closeEditModal();
     loadAssets();
+    backupToGist();
   } catch (err) { showToast('❌ ' + err.message); }
 }
 
@@ -1512,12 +1679,14 @@ async function deleteAsset(id) {
     const a = allAssets.find(x => x.id === id);
     await DB.delete(id);
     if (objUrls.has(id)) { URL.revokeObjectURL(objUrls.get(id)); objUrls.delete(id); }
+    if (refUrls.has(id)) { URL.revokeObjectURL(refUrls.get(id)); refUrls.delete(id); }
     if (a) {
       const label = [a.make, a.modelNumber || a.equipmentType].filter(Boolean).join(' ');
       await logSessionAction(`Deleted: ${label || 'Asset'}`);
     }
     showToast('🗑️ Asset deleted');
     loadAssets();
+    backupToGist();
   } catch (err) { showToast('❌ ' + err.message); }
 }
 
@@ -1864,6 +2033,8 @@ function getPropertyName() { return localStorage.getItem('property_name') || '';
 function openSettings() {
   document.getElementById('apiKeyInput').value = getApiKey();
   document.getElementById('propertyNameInput').value = getPropertyName();
+  document.getElementById('githubPATInput').value = getGithubPAT();
+  updateBackupStatusRow();
   document.getElementById('settingsModal').classList.add('open');
 }
 function closeSettings() { document.getElementById('settingsModal').classList.remove('open'); }
@@ -1872,9 +2043,13 @@ function saveSettings() {
   if (!key) { showToast('⚠️ Please enter your API key'); return; }
   setApiKey(key);
   localStorage.setItem('property_name', document.getElementById('propertyNameInput').value.trim());
+  const pat = document.getElementById('githubPATInput').value.trim();
+  setGithubPAT(pat);
   updateKeyIndicator();
+  setBackupIndicator('ok', pat ? 'Backup on' : '');
   closeSettings();
   showToast('✅ Settings saved');
+  if (pat) backupToGist();
 }
 
 // ══════════════ INSTALL ══════════════
@@ -1902,6 +2077,8 @@ DB.init().then(async () => {
   updateBadge();
   checkInstallBanner();
   await loadActiveSession();
+  const lastTs = localStorage.getItem('last_backup_time');
+  if (getGithubPAT()) setBackupIndicator('ok', lastTs ? `Backed up ${lastTs}` : 'Backup on');
   if (!getApiKey()) setTimeout(() => openSettings(), 600);
 }).catch(err => showToast('❌ Storage error: ' + err.message));
 </script>
