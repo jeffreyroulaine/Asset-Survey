@@ -98,6 +98,7 @@
     .form-label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--text-muted); margin-bottom: 5px; }
     .form-input, .form-textarea { width: 100%; padding: 11px 13px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 15px; color: var(--text); background: white; transition: border-color .2s; -webkit-appearance: none; font-family: inherit; }
     .form-input:focus, .form-textarea:focus { outline: none; border-color: var(--blue-light); box-shadow: 0 0 0 3px rgba(33,150,243,.15); }
+    .form-input.field-warn { border-color: #f59e0b; background: #fffbeb; }
     .form-textarea { resize: vertical; min-height: 66px; }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     @media (max-width: 380px) { .form-row { grid-template-columns: 1fr; } }
@@ -310,6 +311,11 @@
           <button class="btn btn-primary" style="flex:1" onclick="triggerCapture()">📷 Camera / Library</button>
           <button class="btn btn-outline" id="clearBtn" onclick="clearCapture()" style="display:none">✕ Clear</button>
         </div>
+        <div class="form-group mt-12" style="margin-bottom:0">
+          <label class="form-label">Tell the AI What This Is (Optional)</label>
+          <input class="form-input" id="aiHint" placeholder="e.g. pool pump, PTAC unit, walk-in cooler…">
+          <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Helps the AI read the tag correctly and price the right equipment class</div>
+        </div>
       </div>
     </div>
 
@@ -363,9 +369,15 @@
               <input class="form-input" id="f-estimatedLifecycle" placeholder="e.g. 15–20 years">
             </div>
           </div>
-          <div class="form-group">
-            <label class="form-label">Est. Replacement Cost</label>
-            <input class="form-input" id="f-replacementCost" placeholder="e.g. $15,000">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">MSRP — Verify AI Estimate</label>
+              <input class="form-input" id="f-msrp" placeholder="e.g. $8,500">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Est. Replacement Cost</label>
+              <input class="form-input" id="f-replacementCost" placeholder="e.g. $15,000">
+            </div>
           </div>
           <div class="divider"></div>
           <div class="form-group">
@@ -665,43 +677,50 @@ function parseJSON(text, fallback = {}) {
   } catch { return fallback; }
 }
 
-async function analyzeTagImage(base64, mimeType) {
+async function analyzeTagImage(base64, mimeType, hint) {
+  const hintLine = hint ? `The surveyor identified this equipment as: "${hint}". Use this to interpret the tag correctly.\n\n` : '';
   const text = await callClaude([{
     role: 'user',
     content: [
       { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
-      { type: 'text', text: `You are analyzing an equipment identification tag or nameplate photo taken during a building asset survey.
+      { type: 'text', text: `${hintLine}You are analyzing an equipment identification tag or nameplate photo taken during a hotel/commercial building asset survey.
 
-Extract these fields:
+CRITICAL RULES:
+- Transcribe ONLY what is actually printed and legible on the tag. Do NOT guess or invent characters.
+- If part of a field is blurry or cut off, transcribe only the legible portion and mark that field as low confidence.
+- Do not confuse part numbers, ratings, voltages, or certification numbers with the model or serial number. Model numbers are usually labeled "Model", "M/N", "MOD"; serials are labeled "Serial", "S/N", "SER".
+
+Extract:
 - make: Manufacturer or brand name
 - modelNumber: Model number or model name
 - serialNumber: Serial number
-- equipmentType: Equipment type (e.g. "rooftop HVAC unit", "boiler", "chiller", "pump", "air handler", "cooling tower", "treadmill", "elevator", etc.)
+- equipmentType: Equipment type (e.g. "rooftop HVAC unit", "boiler", "chiller", "pump", "air handler", "cooling tower", "pneumatic tank", "elevator", etc.)
+- confidence: For each field above, "high" if clearly legible, "low" if partially legible, inferred, or uncertain
 
-Return ONLY valid JSON with exactly these keys. Use "" if a field is not visible or legible.
-Example: {"make":"Carrier","modelNumber":"50XC-060","serialNumber":"2319G12345","equipmentType":"rooftop HVAC unit"}` }
+Return ONLY valid JSON with exactly these keys. Use "" if a field is not visible.
+Example: {"make":"Carrier","modelNumber":"50XC-060","serialNumber":"2319G12345","equipmentType":"rooftop HVAC unit","confidence":{"make":"high","modelNumber":"low","serialNumber":"high","equipmentType":"high"}}` }
     ]
-  }], 512);
-  return parseJSON(text, { make: '', modelNumber: '', serialNumber: '', equipmentType: '' });
+  }], 600);
+  return parseJSON(text, { make: '', modelNumber: '', serialNumber: '', equipmentType: '', confidence: {} });
 }
 
-async function getEquipmentInfo(make, model, equipmentType, searchContext) {
+async function getEquipmentInfo(make, model, serial, equipmentType, searchContext) {
   const ctxLine = searchContext ? `Web search context: ${searchContext.slice(0, 800)}\n\n` : '';
   const text = await callClaude([{
     role: 'user',
-    content: `${ctxLine}Equipment — Make: ${make||'Unknown'}, Model: ${model||'Unknown'}, Type: ${equipmentType||'Unknown'}
+    content: `${ctxLine}Equipment — Make: ${make||'Unknown'}, Model: ${model||'Unknown'}, Serial: ${serial||'Unknown'}, Type: ${equipmentType||'Unknown'}
 
 Based on this information and your knowledge:
-1. yearOfService: The approximate year this specific model was introduced or the likely installation year (e.g., "2018" or "2015–2020 range")
-2. estimatedLifecycle: Typical operational lifespan for this equipment type (e.g., "15–20 years")
+1. yearOfService: Many manufacturers encode the year/week of manufacture in the serial number (e.g., Carrier/Trane/Lennox/Rheem date codes). If you can decode a manufacture date from this serial number for this manufacturer, use it and append "(from serial)" — e.g., "2019 (from serial)". Only decode if you are confident in that manufacturer's serial format; otherwise give the likely installation year range for this model, e.g., "2015–2020 (estimate)".
+2. estimatedLifecycle: Typical operational lifespan for this equipment type in commercial/hotel service (e.g., "15–20 years")
 
 Return ONLY valid JSON: {"yearOfService":"","estimatedLifecycle":""}
 Always provide reasonable estimates — never leave fields empty.`
-  }], 256);
+  }], 300);
   return parseJSON(text, { yearOfService: '', estimatedLifecycle: '' });
 }
 
-async function getMSRPInfo(make, model, equipType) {
+async function getMSRPInfo(make, model, equipType, hint) {
   if (!make && !model) return null;
   const text = await callClaude([{
     role: 'user',
@@ -710,14 +729,14 @@ async function getMSRPInfo(make, model, equipType) {
 Equipment:
 Make: ${make || 'Unknown'}
 Model: ${model || 'Unknown'}
-Type: ${equipType || 'Unknown'}
+Type: ${equipType || 'Unknown'}${hint ? `\nSurveyor's description: ${hint}` : ''}
 
 Provide:
-1. msrp: Estimated MSRP in USD as a number (e.g. 12500). Use your best estimate based on equipment category/class.
-2. isObsolete: true if this model is discontinued or obsolete, false if currently available
-3. replacementModel: If obsolete, the current manufacturer equivalent model name. null if current.
-4. replacementMSRP: If obsolete, the current equivalent estimated MSRP as a number. null if current.
-5. replacementNote: Brief note about the replacement or upgrade. null if current.
+1. msrp: Estimated list price in USD as a number (e.g. 12500). Be conservative and realistic for the COMMERCIAL grade of this equipment class and size. If you do not recognize this specific model and cannot make a defensible category-based estimate, use null rather than guessing.
+2. isObsolete: true ONLY if you are confident this model is discontinued. false if currently available or if you are unsure.
+3. replacementModel: If obsolete, the current manufacturer equivalent model name. null if current or unsure.
+4. replacementMSRP: If obsolete, the current equivalent estimated list price as a number. null if current or unsure.
+5. replacementNote: Brief note about the replacement, upgrade, or basis for the price estimate. null if nothing useful.
 
 Return ONLY valid JSON:
 {"msrp":12500,"isObsolete":false,"replacementModel":null,"replacementMSRP":null,"replacementNote":null}`
@@ -1028,6 +1047,7 @@ function setManualEntry() {
   isManualEntry = true;
   currentCondition = '';
   populateForm({});
+  clearConfidenceWarnings();
   if (lastLocation) document.getElementById('f-location').value = lastLocation;
   document.getElementById('resultsSection').style.display = 'block';
   document.getElementById('aiAlert').innerHTML =
@@ -1076,16 +1096,18 @@ async function analyzeImage() {
   try {
     const base64 = await fileToBase64(currentFile);
     const mimeType = currentFile.type || 'image/jpeg';
+    const hint = document.getElementById('aiHint').value.trim();
 
-    const extracted = await analyzeTagImage(base64, mimeType);
+    const extracted = await analyzeTagImage(base64, mimeType, hint);
+    if (hint && !extracted.equipmentType) extracted.equipmentType = hint;
 
     const searchQuery = [extracted.make, extracted.modelNumber, extracted.equipmentType, 'specifications lifespan year'].filter(Boolean).join(' ');
     const [searchContext, msrpData] = await Promise.all([
       searchDDG(searchQuery),
-      getMSRPInfo(extracted.make, extracted.modelNumber, extracted.equipmentType)
+      getMSRPInfo(extracted.make, extracted.modelNumber, extracted.equipmentType, hint)
     ]);
 
-    const info = await getEquipmentInfo(extracted.make, extracted.modelNumber, extracted.equipmentType, searchContext);
+    const info = await getEquipmentInfo(extracted.make, extracted.modelNumber, extracted.serialNumber, extracted.equipmentType, searchContext);
 
     clearInterval(ticker);
     spinner.classList.remove('visible');
@@ -1098,9 +1120,12 @@ async function analyzeImage() {
     if (msrpData) renderMSRPResult(msrpData);
     else document.getElementById('msrpResult').innerHTML = '';
 
+    const hasLowConf = applyConfidenceWarnings(extracted.confidence || {});
+
     document.getElementById('resultsSection').style.display = 'block';
-    document.getElementById('aiAlert').innerHTML =
-      `<div class="alert alert-success">✅ AI extracted tag data. Review and correct any fields below.</div>`;
+    document.getElementById('aiAlert').innerHTML = hasLowConf
+      ? `<div class="alert alert-warning">⚠️ The AI had trouble reading the <strong>highlighted fields</strong> — please verify them against the tag before saving.</div>`
+      : `<div class="alert alert-success">✅ AI extracted tag data. Review and correct any fields below.</div>`;
 
   } catch (err) {
     clearInterval(ticker);
@@ -1110,6 +1135,25 @@ async function analyzeImage() {
     document.getElementById('aiAlert').innerHTML =
       `<div class="alert alert-error">⚠️ ${esc(err.message)}</div>`;
   }
+}
+
+function applyConfidenceWarnings(conf) {
+  let hasLow = false;
+  ['make','modelNumber','serialNumber','equipmentType'].forEach(f => {
+    const el = document.getElementById('f-' + f);
+    if (!el) return;
+    el.classList.remove('field-warn');
+    if (conf[f] === 'low') {
+      hasLow = true;
+      el.classList.add('field-warn');
+      el.addEventListener('input', () => el.classList.remove('field-warn'), { once: true });
+    }
+  });
+  return hasLow;
+}
+
+function clearConfidenceWarnings() {
+  document.querySelectorAll('.field-warn').forEach(el => el.classList.remove('field-warn'));
 }
 
 function renderMSRPResult(data) {
@@ -1134,8 +1178,9 @@ function renderMSRPResult(data) {
         ${data.msrp ? `<span class="msrp-autofill" onclick="autofillCost(${data.msrp})">Use ${fmt(data.msrp)} as Replacement Cost →</span>` : ''}
       </div>`;
   }
-  // stash for saving
+  // stash for saving + pre-fill the editable MSRP field
   el._msrpData = data;
+  if (data.msrp) document.getElementById('f-msrp').value = '$' + Number(data.msrp).toLocaleString();
 }
 
 function autofillCost(amount) {
@@ -1144,12 +1189,12 @@ function autofillCost(amount) {
 }
 
 function populateForm(data) {
-  ['equipmentType','make','modelNumber','serialNumber','yearOfService','estimatedLifecycle','replacementCost','location','notes']
+  ['equipmentType','make','modelNumber','serialNumber','yearOfService','estimatedLifecycle','msrp','replacementCost','location','notes']
     .forEach(f => { const el = document.getElementById('f-' + f); if (el) el.value = data[f] || ''; });
 }
 
 function getFormData() {
-  return ['equipmentType','make','modelNumber','serialNumber','yearOfService','estimatedLifecycle','replacementCost','location','notes']
+  return ['equipmentType','make','modelNumber','serialNumber','yearOfService','estimatedLifecycle','msrp','replacementCost','location','notes']
     .reduce((o, f) => { o[f] = document.getElementById('f-' + f)?.value.trim() || ''; return o; }, {});
 }
 
@@ -1172,11 +1217,11 @@ async function saveAsset() {
       sessionName: activeSession.name,
       condition: currentCondition || '',
       manualEntry: isManualEntry,
-      msrp: msrpData?.msrp || null,
       isObsolete: msrpData?.isObsolete || false,
       replacementModel: msrpData?.replacementModel || '',
       replacementMSRP: msrpData?.replacementMSRP || null,
       ...data,
+      msrp: parseCost(data.msrp),
       imageBlob: currentBlob || null
     };
     await DB.put(asset);
@@ -1195,6 +1240,8 @@ async function saveAsset() {
     isManualEntry = false;
     clearCapture();
     populateForm({});
+    clearConfidenceWarnings();
+    document.getElementById('aiHint').value = '';
     if (lastLocation) document.getElementById('f-location').value = lastLocation;
     document.querySelectorAll('.condition-btn').forEach(b => b.className = 'condition-btn');
     document.getElementById('aiAlert').innerHTML = '';
@@ -1212,6 +1259,8 @@ function resetSurvey() {
   isManualEntry = false;
   clearCapture();
   populateForm({});
+  clearConfidenceWarnings();
+  document.getElementById('aiHint').value = '';
   document.querySelectorAll('.condition-btn').forEach(b => b.className = 'condition-btn');
   document.getElementById('aiAlert').innerHTML = '';
   document.getElementById('msrpResult').innerHTML = '';
@@ -1374,7 +1423,10 @@ function openEditModal(id) {
       <div class="form-group"><label class="form-label">Year of Service</label><input class="form-input" id="e-yearOfService" value="${esc(a.yearOfService)}"></div>
       <div class="form-group"><label class="form-label">Est. Lifecycle</label><input class="form-input" id="e-estimatedLifecycle" value="${esc(a.estimatedLifecycle)}"></div>
     </div>
-    <div class="form-group"><label class="form-label">Est. Replacement Cost</label><input class="form-input" id="e-replacementCost" value="${esc(a.replacementCost)}" placeholder="e.g. $15,000"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">MSRP</label><input class="form-input" id="e-msrp" value="${a.msrp ? '$' + Number(a.msrp).toLocaleString() : ''}" placeholder="e.g. $8,500"></div>
+      <div class="form-group"><label class="form-label">Est. Replacement Cost</label><input class="form-input" id="e-replacementCost" value="${esc(a.replacementCost)}" placeholder="e.g. $15,000"></div>
+    </div>
     <div class="form-group"><label class="form-label">Location</label><input class="form-input" id="e-location" value="${esc(a.location)}"></div>
     <div class="form-group">
       <label class="form-label">Condition</label>
@@ -1410,6 +1462,7 @@ async function saveEdit() {
   const fields = ['equipmentType','make','modelNumber','serialNumber','yearOfService','estimatedLifecycle','replacementCost','location','notes','condition'];
   const updated = { ...a };
   fields.forEach(f => { updated[f] = document.getElementById('e-' + f)?.value.trim() || ''; });
+  updated.msrp = parseCost(document.getElementById('e-msrp')?.value);
   try {
     await DB.put(updated);
     showToast('✅ Asset updated');
