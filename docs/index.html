@@ -216,6 +216,27 @@
     .review-model { font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .review-detail { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
 
+    /* ── Albums ── */
+    .album-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+    .album-toolbar .album-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--text-muted); }
+    .seg { display: inline-flex; background: #e6edf4; border-radius: 50px; padding: 3px; gap: 2px; }
+    .seg-btn { border: none; background: none; padding: 7px 14px; border-radius: 50px; font-size: 13px; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: all .2s; }
+    .seg-btn.active { background: white; color: var(--blue); box-shadow: var(--shadow); }
+    .album { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 16px; }
+    .album-head { display: flex; align-items: center; gap: 10px; padding: 13px 15px; background: linear-gradient(135deg, var(--blue-dark), var(--blue)); color: white; cursor: pointer; }
+    .album-head .album-folder { font-size: 22px; }
+    .album-head .album-titles { flex: 1; min-width: 0; }
+    .album-head .album-name { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .album-head .album-sub { font-size: 11px; opacity: .8; margin-top: 1px; }
+    .album-head .album-pill { background: rgba(255,255,255,.22); border-radius: 20px; padding: 2px 10px; font-size: 12px; font-weight: 700; }
+    .album-head .album-chevron { font-size: 18px; transition: transform .2s; }
+    .album-head .album-chevron.open { transform: rotate(180deg); }
+    .album-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; }
+    .album-grid.collapsed { display: none; }
+    .album-cell { position: relative; aspect-ratio: 1 / 1; background: var(--bg); border-radius: 6px; overflow: hidden; cursor: pointer; }
+    .album-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .album-cell .album-cell-label { position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 6px 4px; background: linear-gradient(transparent, rgba(0,0,0,.7)); color: white; font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
     .img-viewer { display: none; position: fixed; inset: 0; background: black; z-index: 300; align-items: center; justify-content: center; }
     .img-viewer.open { display: flex; }
     .img-viewer img { max-width: 100%; max-height: 100%; object-fit: contain; }
@@ -292,6 +313,9 @@
   </button>
   <button class="tab-btn" onclick="switchTab('sessions')" id="tab-sessions">
     <span class="tab-icon">📁</span>Sessions
+  </button>
+  <button class="tab-btn" onclick="switchTab('albums')" id="tab-albums">
+    <span class="tab-icon">🗂️</span>Albums
   </button>
 </div>
 
@@ -444,6 +468,24 @@
     <div class="empty-icon">📦</div>
     <p>No assets yet</p>
     <small>Survey an equipment tag to get started</small>
+  </div>
+</div>
+
+<!-- ══════════════ ALBUMS ══════════════ -->
+<div class="section" id="section-albums">
+  <div class="album-toolbar">
+    <span class="album-label">Group by year:</span>
+    <div class="seg">
+      <button class="seg-btn active" id="seg-survey" onclick="setAlbumYearBasis('survey')">📅 Survey Year</button>
+      <button class="seg-btn" id="seg-service" onclick="setAlbumYearBasis('service')">⚙️ Year of Service</button>
+    </div>
+  </div>
+  <div class="asset-count" id="albumCount"></div>
+  <div id="albumList"></div>
+  <div class="empty-state" id="albumEmpty" style="display:none">
+    <div class="empty-icon">🗂️</div>
+    <p>No photos yet</p>
+    <small>Survey equipment tags to fill your albums</small>
   </div>
 </div>
 
@@ -960,6 +1002,114 @@ function switchTab(tab) {
   if (tab === 'assets') loadAssets();
   if (tab === 'sessions') renderSessionsTab();
   if (tab === 'survey') updateSurveySessionGate();
+  if (tab === 'albums') loadAlbums();
+}
+
+// ══════════════ ALBUMS ══════════════
+let albumYearBasis = 'survey'; // 'survey' = photo capture year, 'service' = equipment year of service
+const collapsedAlbums = new Set();
+let albumKeys = {};
+
+function setAlbumYearBasis(basis) {
+  albumYearBasis = basis;
+  document.getElementById('seg-survey').classList.toggle('active', basis === 'survey');
+  document.getElementById('seg-service').classList.toggle('active', basis === 'service');
+  renderAlbums(allAssets);
+}
+
+async function loadAlbums() {
+  try {
+    allAssets = await DB.getAll();
+    renderAlbums(allAssets);
+  } catch (err) { showToast('❌ Failed to load albums'); }
+}
+
+function albumYearFor(a) {
+  if (albumYearBasis === 'service') {
+    const m = String(a.yearOfService || '').match(/\b(19|20)\d{2}\b/);
+    return m ? m[0] : 'Unknown Year';
+  }
+  const d = new Date(a.timestamp);
+  return isNaN(d) ? 'Unknown Year' : String(d.getFullYear());
+}
+
+function renderAlbums(assets) {
+  const list = document.getElementById('albumList');
+  const empty = document.getElementById('albumEmpty');
+  const count = document.getElementById('albumCount');
+
+  const photos = (assets || []).filter(a => a.imageBlob);
+  if (!photos.length) {
+    list.innerHTML = '';
+    count.textContent = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  // Group: Location → Year → photos
+  const byLocation = {};
+  photos.forEach(a => {
+    const loc = (a.location || '').trim() || 'Unspecified Location';
+    const year = albumYearFor(a);
+    (byLocation[loc] = byLocation[loc] || {});
+    (byLocation[loc][year] = byLocation[loc][year] || []).push(a);
+  });
+
+  const locations = Object.keys(byLocation).sort((a, b) => a.localeCompare(b));
+  const yearRank = y => (y === 'Unknown Year' ? -Infinity : +y);
+
+  let aid = 0;
+  albumKeys = {};
+  let albumCount = 0;
+  const html = locations.map(loc => {
+    const years = Object.keys(byLocation[loc]).sort((a, b) => yearRank(b) - yearRank(a));
+    return years.map(year => {
+      albumCount++;
+      const idx = aid++;
+      const items = byLocation[loc][year];
+      const key = `${loc}::${year}`;
+      albumKeys[idx] = key;
+      const isCollapsed = collapsedAlbums.has(key);
+      const cells = items.map(a => {
+        const url = getObjUrl(a);
+        const label = [a.equipmentType, a.make].filter(Boolean).join(' · ') || a.modelNumber || '';
+        return `
+          <div class="album-cell" onclick="viewImage('${url}',event)">
+            <img src="${url}" alt="${esc(label)}" loading="lazy">
+            ${label ? `<div class="album-cell-label">${esc(label)}</div>` : ''}
+          </div>`;
+      }).join('');
+      return `
+        <div class="album">
+          <div class="album-head" onclick="toggleAlbum(${idx})">
+            <span class="album-folder">🗂️</span>
+            <div class="album-titles">
+              <div class="album-name">${esc(loc)}</div>
+              <div class="album-sub">${year}</div>
+            </div>
+            <span class="album-pill">${items.length} 📷</span>
+            <span class="album-chevron ${isCollapsed ? '' : 'open'}" id="achev-${idx}">⌄</span>
+          </div>
+          <div class="album-grid ${isCollapsed ? 'collapsed' : ''}" id="agrid-${idx}">
+            ${cells}
+          </div>
+        </div>`;
+    }).join('');
+  }).join('');
+
+  list.innerHTML = html;
+  count.textContent = `${albumCount} album${albumCount !== 1 ? 's' : ''} · ${photos.length} photo${photos.length !== 1 ? 's' : ''}`;
+}
+
+function toggleAlbum(idx) {
+  const grid = document.getElementById('agrid-' + idx);
+  const chev = document.getElementById('achev-' + idx);
+  if (!grid) return;
+  const nowCollapsed = grid.classList.toggle('collapsed');
+  if (chev) chev.classList.toggle('open', !nowCollapsed);
+  const key = albumKeys[idx];
+  if (key) { if (nowCollapsed) collapsedAlbums.add(key); else collapsedAlbums.delete(key); }
 }
 
 // ══════════════ TOAST ══════════════
