@@ -1613,7 +1613,9 @@ function openEditModal(id) {
   const imgUrl = getObjUrl(a);
   const condMap = { 'Good':'sel-Good','Fair':'sel-Fair','Poor':'sel-Poor','Non-Functional':'sel-NonFunctional' };
   document.getElementById('editModalBody').innerHTML = `
-    ${imgUrl ? `<img src="${imgUrl}" style="width:100%;border-radius:10px;margin-bottom:13px;max-height:180px;object-fit:contain;background:#f0f4f8;cursor:zoom-in" onclick="viewImage('${imgUrl}')">` : ''}
+    ${imgUrl ? `<img src="${imgUrl}" style="width:100%;border-radius:10px;margin-bottom:8px;max-height:180px;object-fit:contain;background:#f0f4f8;cursor:zoom-in" onclick="viewImage('${imgUrl}')">` : ''}
+    ${imgUrl ? `<button class="btn btn-primary btn-full" onclick="reanalyzeAsset('${id}')" style="margin-bottom:13px">🔍 Re-analyze Tag with AI</button>` : ''}
+    <div id="editAnalysisAlert"></div>
     <div class="form-group"><label class="form-label">Equipment Type</label><input class="form-input" id="e-equipmentType" value="${esc(a.equipmentType)}"></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Make</label><input class="form-input" id="e-make" value="${esc(a.make)}"></div>
@@ -1645,6 +1647,50 @@ function openEditModal(id) {
     <div style="height:8px"></div>
   `;
   document.getElementById('editModal').classList.add('open');
+}
+
+async function reanalyzeAsset(id) {
+  const a = allAssets.find(x => x.id === id);
+  if (!a || !a.imageBlob) return;
+  if (!getApiKey()) { showToast('⚠️ No API key set'); return; }
+
+  const alertEl = document.getElementById('editAnalysisAlert');
+  alertEl.innerHTML = `<div class="alert alert-info" style="margin-bottom:13px">⏳ Analyzing tag… please wait</div>`;
+  document.querySelector('#editModalBody .btn-primary').disabled = true;
+
+  try {
+    const base64  = await fileToBase64(a.imageBlob);
+    const mime    = a.imageBlob.type || 'image/jpeg';
+    const hint    = a.equipmentType || '';
+
+    const extracted = await analyzeTagImage(base64, mime, hint);
+
+    const searchQuery = [extracted.make, extracted.modelNumber, extracted.equipmentType].filter(Boolean).join(' ') + ' specifications lifespan year';
+    const [searchContext, msrpData] = await Promise.all([
+      searchDDG(searchQuery),
+      getMSRPInfo(extracted.make, extracted.modelNumber, extracted.equipmentType, hint)
+    ]);
+    const info = await getEquipmentInfo(extracted.make, extracted.modelNumber, extracted.serialNumber, extracted.equipmentType, searchContext);
+
+    // Populate edit fields with new data — only overwrite non-empty AI results
+    const fill = (fieldId, val) => { if (val) { const el = document.getElementById(fieldId); if (el) el.value = val; } };
+    fill('e-equipmentType',     extracted.equipmentType);
+    fill('e-make',              extracted.make);
+    fill('e-modelNumber',       extracted.modelNumber);
+    fill('e-serialNumber',      extracted.serialNumber);
+    fill('e-yearOfService',     info.yearOfService);
+    fill('e-estimatedLifecycle',info.estimatedLifecycle);
+    if (msrpData?.msrp) fill('e-msrp', '$' + Number(msrpData.msrp).toLocaleString());
+
+    const hasLow = Object.values(extracted.confidence || {}).some(v => v === 'low');
+    alertEl.innerHTML = hasLow
+      ? `<div class="alert alert-warning" style="margin-bottom:13px">⚠️ AI updated the fields — some were low confidence, please verify before saving.</div>`
+      : `<div class="alert alert-success" style="margin-bottom:13px">✅ AI updated all fields. Review and tap Save Changes.</div>`;
+  } catch (err) {
+    alertEl.innerHTML = `<div class="alert alert-error" style="margin-bottom:13px">❌ ${esc(err.message)}</div>`;
+  }
+  const btn = document.querySelector('#editModalBody .btn-primary');
+  if (btn) btn.disabled = false;
 }
 
 function editSetCondition(value, btn) {
