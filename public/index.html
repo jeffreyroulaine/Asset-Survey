@@ -673,6 +673,13 @@
           <label class="form-label">Notes</label>
           <textarea class="form-textarea" id="f-notes" placeholder="Condition, observations, action items…"></textarea>
         </div>
+
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500;cursor:pointer">
+            <input type="checkbox" id="f-hasPeople" style="width:18px;height:18px">
+            👥 This is a photo of people (file under the People album)
+          </label>
+        </div>
       </div>
     </div>
 
@@ -717,6 +724,7 @@
       <button class="seg-btn active" id="seg-survey" onclick="setAlbumYearBasis('survey')">📅 Survey Year</button>
       <button class="seg-btn" id="seg-service" onclick="setAlbumYearBasis('service')">⚙️ Year of Service</button>
     </div>
+    <button class="btn btn-outline" id="scanPeopleBtn" style="min-height:40px;padding:8px 14px;font-size:13px;margin-left:auto" onclick="scanForPeople()">👥 Scan for people</button>
   </div>
 
   <div class="asset-count" id="albumCount"></div>
@@ -890,6 +898,7 @@ async function analyzeImage() {
 function populateForm(data) {
   ['equipmentType','make','modelNumber','serialNumber','yearOfService','estimatedLifecycle','replacementCost','location','notes']
     .forEach(f => { const el = document.getElementById('f-' + f); if (el) el.value = data[f] || ''; });
+  document.getElementById('f-hasPeople').checked = !!data.hasPeople;
 }
 
 function getFormData() {
@@ -903,6 +912,7 @@ function getFormData() {
     replacementCost:  document.getElementById('f-replacementCost').value.trim(),
     location:         document.getElementById('f-location').value.trim(),
     notes:            document.getElementById('f-notes').value.trim(),
+    hasPeople:        document.getElementById('f-hasPeople').checked,
     imagePath:        currentImagePath || ''
   };
 }
@@ -1094,6 +1104,12 @@ function openEditModal(id) {
       <input class="form-input" id="e-location" value="${esc(a.location)}"></div>
     <div class="form-group"><label class="form-label">Notes</label>
       <textarea class="form-textarea" id="e-notes">${esc(a.notes)}</textarea></div>
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500;cursor:pointer">
+        <input type="checkbox" id="e-hasPeople" ${a.hasPeople ? 'checked' : ''} style="width:18px;height:18px">
+        👥 This is a photo of people (file under the People album)
+      </label>
+    </div>
     <button class="btn btn-success btn-full" onclick="saveEdit()" style="margin-bottom:8px">💾 Save Changes</button>
     <button class="btn btn-outline btn-full" onclick="closeEditModal()">Cancel</button>
     <div style="height:8px"></div>
@@ -1118,7 +1134,8 @@ async function saveEdit() {
     estimatedLifecycle: document.getElementById('e-estimatedLifecycle').value.trim(),
     replacementCost:   document.getElementById('e-replacementCost').value.trim(),
     location:          document.getElementById('e-location').value.trim(),
-    notes:             document.getElementById('e-notes').value.trim()
+    notes:             document.getElementById('e-notes').value.trim(),
+    hasPeople:         document.getElementById('e-hasPeople').checked
   };
   try {
     const res = await fetch('/api/assets/' + editingAsset.id, {
@@ -1170,6 +1187,31 @@ async function loadAlbums() {
   }
 }
 
+// Ask the server to classify any not-yet-scanned photos for people,
+// then refresh so the "People" album updates.
+async function scanForPeople() {
+  const btn = document.getElementById('scanPeopleBtn');
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Scanning…';
+  try {
+    const res = await fetch('/api/assets/scan-people', { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Scan failed');
+    if (data.scanned === 0) {
+      showToast('👍 All photos already scanned');
+    } else {
+      showToast(`👥 Found people in ${data.peopleFound} of ${data.scanned} new photo${data.scanned !== 1 ? 's' : ''}`);
+    }
+    await loadAlbums();
+  } catch (err) {
+    showToast('❌ ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
 function albumYearFor(a) {
   if (albumYearBasis === 'service') {
     const m = String(a.yearOfService || '').match(/\b(19|20)\d{2}\b/);
@@ -1193,9 +1235,24 @@ function renderAlbums(assets) {
   }
   empty.style.display = 'none';
 
-  // Group: Location → Year → photos
+  // Photos of people are pulled out into their own "People" album;
+  // everything else is grouped by location and year.
+  const peoplePhotos = photos.filter(a => a.hasPeople);
+  const otherPhotos = photos.filter(a => !a.hasPeople);
+
+  // Build one photo cell (thumbnail + caption) for an asset.
+  function cellHtml(a) {
+    const label = [a.equipmentType, a.make].filter(Boolean).join(' · ') || a.modelNumber || '';
+    return `
+      <div class="album-cell" onclick="viewImage('/uploads/${a.imagePath}',event)">
+        <img src="/uploads/${a.imagePath}" alt="${esc(label)}" loading="lazy">
+        ${label ? `<div class="album-cell-label">${esc(label)}</div>` : ''}
+      </div>`;
+  }
+
+  // Group otherPhotos: Location → Year → photos
   const byLocation = {};
-  photos.forEach(a => {
+  otherPhotos.forEach(a => {
     const loc = (a.location || '').trim() || 'Unspecified Location';
     const year = albumYearFor(a);
     (byLocation[loc] = byLocation[loc] || {});
@@ -1209,7 +1266,33 @@ function renderAlbums(assets) {
   let aid = 0;
   albumKeys = {}; // map DOM index → logical key for collapse persistence
   let albumCount = 0;
-  const html = locations.map(loc => {
+
+  // People album first (spans all locations & years).
+  let peopleHtml = '';
+  if (peoplePhotos.length) {
+    albumCount++;
+    const idx = aid++;
+    const key = 'People::all';
+    albumKeys[idx] = key;
+    const isCollapsed = collapsedAlbums.has(key);
+    peopleHtml = `
+      <div class="album">
+        <div class="album-head" onclick="toggleAlbum(${idx})">
+          <span class="album-folder">👥</span>
+          <div class="album-titles">
+            <div class="album-name">People</div>
+            <div class="album-sub">Photos of people</div>
+          </div>
+          <span class="album-pill">${peoplePhotos.length} 📷</span>
+          <span class="album-chevron ${isCollapsed ? '' : 'open'}" id="achev-${idx}">⌄</span>
+        </div>
+        <div class="album-grid ${isCollapsed ? 'collapsed' : ''}" id="agrid-${idx}">
+          ${peoplePhotos.map(cellHtml).join('')}
+        </div>
+      </div>`;
+  }
+
+  const html = peopleHtml + locations.map(loc => {
     const years = Object.keys(byLocation[loc]).sort((a, b) => yearRank(b) - yearRank(a));
     return years.map(year => {
       albumCount++;
@@ -1218,14 +1301,7 @@ function renderAlbums(assets) {
       const key = `${loc}::${year}`;
       albumKeys[idx] = key;
       const isCollapsed = collapsedAlbums.has(key);
-      const cells = items.map(a => {
-        const label = [a.equipmentType, a.make].filter(Boolean).join(' · ') || a.modelNumber || '';
-        return `
-          <div class="album-cell" onclick="viewImage('/uploads/${a.imagePath}',event)">
-            <img src="/uploads/${a.imagePath}" alt="${esc(label)}" loading="lazy">
-            ${label ? `<div class="album-cell-label">${esc(label)}</div>` : ''}
-          </div>`;
-      }).join('');
+      const cells = items.map(cellHtml).join('');
       return `
         <div class="album">
           <div class="album-head" onclick="toggleAlbum(${idx})">

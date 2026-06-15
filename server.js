@@ -75,23 +75,24 @@ app.post('/api/analyze', upload.single('image'), async (req, res) => {
           },
           {
             type: 'text',
-            text: `You are analyzing an equipment identification tag or nameplate photo taken in the field.
+            text: `You are analyzing a field photo. It is usually an equipment identification tag or nameplate, but it may also be a photo of people.
 
-Extract the following fields from the tag:
+Extract the following fields:
 - make: The manufacturer or brand name
 - modelNumber: The model number or model name
 - serialNumber: The serial number
 - equipmentType: What type of equipment this appears to be (e.g., "HVAC unit", "boiler", "pump", "chiller", "air handler", "fitness equipment", etc.)
+- hasPeople: true if the photo prominently shows one or more people (their face or body), otherwise false
 
-Return ONLY valid JSON with exactly these keys. Use empty string "" if a field is not visible or legible.
+Return ONLY valid JSON with exactly these keys. Use empty string "" for any text field that is not visible or legible, and a boolean for hasPeople.
 
-Example: {"make":"Carrier","modelNumber":"50XC-060","serialNumber":"2319G12345","equipmentType":"rooftop HVAC unit"}`
+Example: {"make":"Carrier","modelNumber":"50XC-060","serialNumber":"2319G12345","equipmentType":"rooftop HVAC unit","hasPeople":false}`
           }
         ]
       }]
     });
 
-    let extracted = { make: '', modelNumber: '', serialNumber: '', equipmentType: '' };
+    let extracted = { make: '', modelNumber: '', serialNumber: '', equipmentType: '', hasPeople: false };
     const visionText = visionResponse.content[0].text.trim();
     try {
       const jsonMatch = visionText.match(/\{[\s\S]*\}/);
@@ -99,6 +100,8 @@ Example: {"make":"Carrier","modelNumber":"50XC-060","serialNumber":"2319G12345",
     } catch (e) {
       console.error('JSON parse error from vision:', e.message);
     }
+    // Coerce hasPeople to a real boolean (model may return a string)
+    extracted.hasPeople = extracted.hasPeople === true || extracted.hasPeople === 'true';
 
     // Step 2: Search DuckDuckGo for equipment info
     let searchContext = '';
@@ -187,6 +190,7 @@ app.post('/api/assets', (req, res) => {
     location: '',
     notes: '',
     imagePath: '',
+    hasPeople: false,
     ...req.body
   };
   assets.unshift(asset); // newest first
@@ -214,6 +218,55 @@ app.delete('/api/assets/:id', (req, res) => {
   }
   saveAssets(assets.filter(a => a.id !== req.params.id));
   res.json({ success: true });
+});
+
+// Scan existing photos for people (backfill the hasPeople flag).
+// Only classifies assets that don't already have a boolean flag, so re-runs are cheap.
+app.post('/api/assets/scan-people', async (req, res) => {
+  const assets = loadAssets();
+  const pending = assets.filter(a => a.imagePath && typeof a.hasPeople !== 'boolean');
+  let scanned = 0, peopleFound = 0;
+
+  for (const a of pending) {
+    const imgPath = path.join('./uploads', a.imagePath);
+    if (!fs.existsSync(imgPath)) { a.hasPeople = false; continue; }
+    try {
+      const buf = fs.readFileSync(imgPath);
+      const ext = path.extname(a.imagePath).toLowerCase();
+      const mediaType = ext === '.png' ? 'image/png'
+        : ext === '.webp' ? 'image/webp'
+        : ext === '.gif' ? 'image/gif' : 'image/jpeg';
+
+      const resp = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 64,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: mediaType, data: buf.toString('base64') } },
+            { type: 'text', text: 'Does this photo prominently show one or more people (their face or body)? Return ONLY JSON: {"hasPeople":true} or {"hasPeople":false}.' }
+          ]
+        }]
+      });
+
+      const text = resp.content[0].text || '';
+      const m = text.match(/\{[\s\S]*\}/);
+      const parsed = m ? JSON.parse(m[0]) : {};
+      a.hasPeople = parsed.hasPeople === true || parsed.hasPeople === 'true';
+      if (a.hasPeople) peopleFound++;
+      scanned++;
+    } catch (e) {
+      console.error('scan-people error:', e.message);
+      // Leave the flag unset so this photo can be retried on the next scan.
+    }
+  }
+
+  saveAssets(assets);
+  res.json({
+    scanned,
+    peopleFound,
+    remaining: assets.filter(a => a.imagePath && typeof a.hasPeople !== 'boolean').length
+  });
 });
 
 // Export to Excel — Styled Capital Projection
