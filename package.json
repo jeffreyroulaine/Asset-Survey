@@ -5,7 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "build": "node decoder/buildBrowser.js && node decoder/generateReference.js && node decoder/generateVendorChecklist.js",
+    "test:decoder": "node decoder/pilot.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

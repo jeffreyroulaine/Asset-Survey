@@ -11,6 +11,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <script src="serial-decoder.browser.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
@@ -866,6 +867,32 @@ Always provide reasonable estimates — never leave fields empty.`
   return parseJSON(text, { yearOfService: '', estimatedLifecycle: '' });
 }
 
+// ── Deterministic serial→manufacture-date decode ──────────────────────────
+// Uses the SAME vetted rules as decoder/brands.js (bundled to
+// serial-decoder.browser.js). When the serial decodes with high/medium
+// confidence it OVERRIDES the AI's year guess; otherwise the surveyor is told
+// to verify the nameplate date rather than trust an estimate.
+function applySerialDecode(extracted, info) {
+  info._decode = null;
+  try {
+    if (!window.SerialDecoder || !extracted || !extracted.serialNumber) return null;
+    const d = window.SerialDecoder.decode(extracted.make, extracted.serialNumber, extracted.modelNumber);
+    info._decode = d;
+    if (d && d.year && (d.confidence === 'high' || d.confidence === 'medium')) {
+      info.yearOfService = `${d.year} (from serial)`;
+    }
+    return d;
+  } catch (e) { console.warn('serial decode error', e); return null; }
+}
+function decodeAlertHtml(d) {
+  if (!d) return '';
+  if (d.year && (d.confidence === 'high' || d.confidence === 'medium')) {
+    const badge = d.confidence === 'high' ? '🟢 high confidence' : '🟡 medium confidence';
+    return `<div class="alert alert-success" style="margin-bottom:13px">🔎 <strong>Year decoded from serial: ${d.year}</strong> — ${badge} (${esc(d.canonical || d.brand || '')}). ${esc(d.note || '')}</div>`;
+  }
+  return `<div class="alert alert-warning" style="margin-bottom:13px">🔎 Could not decode a year from this serial — <strong>verify the manufacture date on the nameplate</strong>. ${esc(d.note || '')}</div>`;
+}
+
 async function getMSRPInfo(make, model, equipType, hint) {
   if (!make && !model) return null;
   const text = await callClaude([{
@@ -1304,6 +1331,7 @@ async function analyzeImage() {
     ]);
 
     const info = await getEquipmentInfo(extracted.make, extracted.modelNumber, extracted.serialNumber, extracted.equipmentType, searchContext);
+    const decoded = applySerialDecode(extracted, info);
 
     clearInterval(ticker);
     spinner.classList.remove('visible');
@@ -1319,9 +1347,9 @@ async function analyzeImage() {
     const hasLowConf = applyConfidenceWarnings(extracted.confidence || {});
 
     document.getElementById('resultsSection').style.display = 'block';
-    document.getElementById('aiAlert').innerHTML = hasLowConf
+    document.getElementById('aiAlert').innerHTML = (hasLowConf
       ? `<div class="alert alert-warning">⚠️ The AI had trouble reading the <strong>highlighted fields</strong> — please verify them against the tag before saving.</div>`
-      : `<div class="alert alert-success">✅ AI extracted tag data. Review and correct any fields below.</div>`;
+      : `<div class="alert alert-success">✅ AI extracted tag data. Review and correct any fields below.</div>`) + decodeAlertHtml(decoded);
 
   } catch (err) {
     clearInterval(ticker);
@@ -1671,6 +1699,7 @@ async function reanalyzeAsset(id) {
       getMSRPInfo(extracted.make, extracted.modelNumber, extracted.equipmentType, hint)
     ]);
     const info = await getEquipmentInfo(extracted.make, extracted.modelNumber, extracted.serialNumber, extracted.equipmentType, searchContext);
+    const decoded = applySerialDecode(extracted, info);
 
     // Populate edit fields with new data — only overwrite non-empty AI results
     const fill = (fieldId, val) => { if (val) { const el = document.getElementById(fieldId); if (el) el.value = val; } };
@@ -1683,9 +1712,9 @@ async function reanalyzeAsset(id) {
     if (msrpData?.msrp) fill('e-msrp', '$' + Number(msrpData.msrp).toLocaleString());
 
     const hasLow = Object.values(extracted.confidence || {}).some(v => v === 'low');
-    alertEl.innerHTML = hasLow
+    alertEl.innerHTML = (hasLow
       ? `<div class="alert alert-warning" style="margin-bottom:13px">⚠️ AI updated the fields — some were low confidence, please verify before saving.</div>`
-      : `<div class="alert alert-success" style="margin-bottom:13px">✅ AI updated all fields. Review and tap Save Changes.</div>`;
+      : `<div class="alert alert-success" style="margin-bottom:13px">✅ AI updated all fields. Review and tap Save Changes.</div>`) + decodeAlertHtml(decoded);
   } catch (err) {
     alertEl.innerHTML = `<div class="alert alert-error" style="margin-bottom:13px">❌ ${esc(err.message)}</div>`;
   }

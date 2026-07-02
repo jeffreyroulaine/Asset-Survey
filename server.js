@@ -6,6 +6,7 @@ const XLSX = require('xlsx');
 const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
+const { decode } = require('./decoder/serialDecoder');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -153,9 +154,20 @@ Make a reasonable estimate even if data is limited — never leave fields empty.
       console.error('JSON parse error from info:', e.message);
     }
 
+    // Deterministic serial→manufacture-date decode (same vetted rules as the
+    // PWA and decoder/). Overrides the AI year guess when confident.
+    const decoded = decode(extracted.make, extracted.serialNumber, extracted.modelNumber);
+    if (decoded.year && (decoded.confidence === 'high' || decoded.confidence === 'medium')) {
+      equipmentInfo.yearOfService = `${decoded.year} (from serial)`;
+    }
+
     res.json({
       ...extracted,
       ...equipmentInfo,
+      serialDecode: {
+        year: decoded.year, confidence: decoded.confidence, method: decoded.decoderMethod,
+        note: decoded.note, brand: decoded.canonical, category: decoded.category
+      },
       imagePath: req.file.filename
     });
 
