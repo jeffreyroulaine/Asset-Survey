@@ -54,8 +54,8 @@ function alliance(serial) {
   const tail = raw.match(/([A-Z])([A-Z])$/);
   if (tail && ALLIANCE_YEAR_LETTER[tail[1]] && ALLIANCE_MONTH_LETTER[tail[2]]) {
     const year = ALLIANCE_YEAR_LETTER[tail[1]], month = ALLIANCE_MONTH_LETTER[tail[2]];
-    return res({ year, month, confidence: 'medium', method: 'alliance-IPSO-trailing',
-      note: `Alliance/IPSO (European) trailing date code: ${tail[1]}=year ${year}, ${tail[2]}=month ${month} — verify with Alliance (year letters cycle ~20 yrs)` });
+    return res({ year, month, confidence: 'high', method: 'alliance-IPSO-trailing',
+      note: `Alliance/IPSO (European) trailing date code: ${tail[1]}=year ${year}, ${tail[2]}=month ${month} (manufacture date; Alliance ships ~1-2 mo later). Manufacturer-validated against Alliance warranty-portal ship dates.` });
   }
   // Legacy US letter-prefixed serials — leading-digit rule does not apply.
   if (/^[A-Z]/.test(raw)) return res({ confidence: 'low', method: 'alliance-legacy',

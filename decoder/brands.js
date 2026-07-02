@@ -38,7 +38,7 @@ const BRANDS = [
     category: 'Commercial laundry', hasPublicAlgorithm: true, decadeAmbiguous: true,
     formats: [
       { era: 'US-built (~mid-2000s–present)', pattern: 'YYMMnnnnnn', rule: 'digits 1-2 = year, digits 3-4 = month (01-12); month reported only when 01-12', example: '1505000001 → May 2015', confidence: 'high' },
-      { era: 'IPSO / European (Czech-built)', pattern: '…[YearLetter][MonthLetter]', rule: 'date is the LAST two letters: penultimate = year (cycles ~20 yrs: …D=2015,F=2016,H=2017,K=2018,M=2019,Q=2020), last = month (two letters/month: Apr=G/H, May=J/K, Nov=V/Y). Leading digits are a plant/sequence code, NOT the date', example: '40F002829FH → Apr 2016; 40F003349MK → May 2019', confidence: 'medium' },
+      { era: 'IPSO / European (Czech-built)', pattern: '…[YearLetter][MonthLetter]', rule: 'date is the LAST two letters: penultimate = year (cycles ~20 yrs: …D=2015,F=2016,H=2017,K=2018,M=2019,Q=2020), last = month (two letters/month: Apr=G/H, May=J/K, Nov=V/Y). Leading digits are a plant/sequence code, NOT the date. VALIDATED vs Alliance ship dates (decodes manufacture date; ship ~1-2 mo later)', example: '40F002829FH → Apr 2016 (Alliance ship 5/26/2016); 40F003349MK → May 2019 (ship 7/1/2019)', confidence: 'high' },
       { era: 'legacy US letter-prefixed', pattern: '[letter]…', rule: 'leading-digit rule does not apply — verify', example: '—', confidence: 'low' },
     ],
     abstainWhen: 'serial is neither US-domestic YYMM nor an IPSO trailing-letter code (verify with Alliance)',

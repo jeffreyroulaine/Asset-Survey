@@ -17,7 +17,7 @@ Each manufacturer encodes the build date differently. This reference groups bran
 | Brand | Category | Era | Pattern | Rule | Example | Conf. | Decade? |
 |---|---|---|---|---|---|---|---|
 | Alliance / Unimac | Commercial laundry | US-built (~mid-2000s–present) | `YYMMnnnnnn` | digits 1-2 = year, digits 3-4 = month (01-12); month reported only when 01-12 | 1505000001 → May 2015 | high | Yes |
-| Alliance / Unimac | Commercial laundry | IPSO / European (Czech-built) | `…[YearLetter][MonthLetter]` | date is the LAST two letters: penultimate = year (cycles ~20 yrs: …D=2015,F=2016,H=2017,K=2018,M=2019,Q=2020), last = month (two letters/month: Apr=G/H, May=J/K, Nov=V/Y). Leading digits are a plant/sequence code, NOT the date | 40F002829FH → Apr 2016; 40F003349MK → May 2019 | medium | Yes |
+| Alliance / Unimac | Commercial laundry | IPSO / European (Czech-built) | `…[YearLetter][MonthLetter]` | date is the LAST two letters: penultimate = year (cycles ~20 yrs: …D=2015,F=2016,H=2017,K=2018,M=2019,Q=2020), last = month (two letters/month: Apr=G/H, May=J/K, Nov=V/Y). Leading digits are a plant/sequence code, NOT the date. VALIDATED vs Alliance ship dates (decodes manufacture date; ship ~1-2 mo later) | 40F002829FH → Apr 2016 (Alliance ship 5/26/2016); 40F003349MK → May 2019 (ship 7/1/2019) | high | Yes |
 | Alliance / Unimac | Commercial laundry | legacy US letter-prefixed | `[letter]…` | leading-digit rule does not apply — verify | — | low | Yes |
 | AAON | HVAC (rooftop/DOAS) | Style 1 | `YYYYMM…` | digits 1-4 = full year, 5-6 = month | 200108AKG… → Aug 2001 | high | Yes |
 | AAON | HVAC (rooftop/DOAS) | Style 2 | `YY…` | digits 1-2 = year (2-digit) | 160901518 → 2016 | medium | Yes |

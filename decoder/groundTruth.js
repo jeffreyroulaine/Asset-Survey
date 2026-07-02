@@ -19,4 +19,8 @@ module.exports = [
   { brand: 'Unimac',         model: 'UTF75NRUF6A2W04',    serial: '1410047154',   recordedYear: 2014, equip: 'Commercial Dryer' },
   { brand: 'Unimac',         model: 'UT75NRUF6A2W04',     serial: '1410049638',   recordedYear: 2014, equip: 'Commercial Dryer' },
   { brand: 'Unimac',         model: 'UTF75NRUF6A2W04',    serial: '1410049637',   recordedYear: 2014, equip: 'Commercial Dryer' },
+  // Alliance/IPSO (Czech-built) — Boca Raton Marriott; manufacturer-validated via Alliance warranty-portal ship dates.
+  { brand: 'Alliance',       model: 'SYN090DNHNU1P01',    serial: '40F002829FH',  recordedYear: 2016, equip: '100 lb Washer-Extractor (Alliance ship 5/26/2016)' },
+  { brand: 'Alliance',       model: 'SYN070DNHNU1P01',    serial: '280FX001342FY', recordedYear: 2016, equip: '70 lb Washer-Extractor (Alliance ship 12/21/2016)' },
+  { brand: 'Alliance',       model: 'UYN090I0NN4U2PR0BJ', serial: '40F003349MK',  recordedYear: 2019, equip: '90 lb Washer-Extractor (Alliance ship 7/1/2019)' },
 ];
