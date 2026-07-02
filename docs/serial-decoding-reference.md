@@ -1,11 +1,11 @@
 # Equipment Serial-Number Decoding Reference
 
-_Generated from `decoder/brands.js`. 56 brands, 72 documented format rows._
+_Generated from `decoder/brands.js`. 56 brands, 73 documented format rows._
 
 Each manufacturer encodes the build date differently. This reference groups brands by **decoding method** so each method can be reviewed and vetted independently. Confidence: **high** = documented + deterministic; **medium** = documented but varies; **low** = uncertain/heuristic. "Decade-ambiguous" means the serial reveals only part of the year and must be corroborated (ANSI plate date, refrigerant, condition).
 
 ## Contents
-- **Method 1 — Year-first numeric (YYMM/YYWW)** (25 rows)
+- **Method 1 — Year-first numeric (YYMM/YYWW)** (26 rows)
 - **Method 2 — Week/Month-first numeric (WWYY/MMYY)** (5 rows)
 - **Method 3 — Alphabetic date code** (10 rows)
 - **Method 4 — Partial/single-digit year — decade-ambiguous** (4 rows)
@@ -16,8 +16,9 @@ Each manufacturer encodes the build date differently. This reference groups bran
 
 | Brand | Category | Era | Pattern | Rule | Example | Conf. | Decade? |
 |---|---|---|---|---|---|---|---|
-| Alliance / Unimac | Commercial laundry | ~mid-2000s–present | `YYMMnnnnnn` | digits 1-2 = year, digits 3-4 = month (01-12); month reported only when 01-12 | 1505000001 → May 2015 | high | Yes |
-| Alliance / Unimac | Commercial laundry | legacy (letter-suffix) | `…+2 trailing letters` | date is the LAST two letters (year letter cycles, month letter) — leading-digit rule does NOT apply | …DK → 2015-05 | medium | Yes |
+| Alliance / Unimac | Commercial laundry | US-built (~mid-2000s–present) | `YYMMnnnnnn` | digits 1-2 = year, digits 3-4 = month (01-12); month reported only when 01-12 | 1505000001 → May 2015 | high | Yes |
+| Alliance / Unimac | Commercial laundry | IPSO / European (Czech-built) | `…[YearLetter][MonthLetter]` | date is the LAST two letters: penultimate = year (cycles ~20 yrs: …D=2015,F=2016,H=2017,K=2018,M=2019,Q=2020), last = month (two letters/month: Apr=G/H, May=J/K, Nov=V/Y). Leading digits are a plant/sequence code, NOT the date | 40F002829FH → Apr 2016; 40F003349MK → May 2019 | medium | Yes |
+| Alliance / Unimac | Commercial laundry | legacy US letter-prefixed | `[letter]…` | leading-digit rule does not apply — verify | — | low | Yes |
 | AAON | HVAC (rooftop/DOAS) | Style 1 | `YYYYMM…` | digits 1-4 = full year, 5-6 = month | 200108AKG… → Aug 2001 | high | Yes |
 | AAON | HVAC (rooftop/DOAS) | Style 2 | `YY…` | digits 1-2 = year (2-digit) | 160901518 → 2016 | medium | Yes |
 | A. O. Smith | Water heaters | ~2008–present | `YYWWnnnnnn` | digits 1-2 = year, 3-4 = week (01-52) | 2108… → wk8 2021 | high | No |

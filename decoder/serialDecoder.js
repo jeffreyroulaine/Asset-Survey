@@ -43,18 +43,34 @@ const MONTH_AL = ['A','B','C','D','E','F','G','H','I','J','K','L'];          // 
 const MITS_MONTH = { X: 10, Y: 11, Z: 12 };
 
 // ── Method 1: year-first numeric ──────────────────────────────────────────
+// Alliance/IPSO (European, Czech-built) trailing date code: …[YearLetter][MonthLetter].
+// Year letters cycle ~20 yrs (decade-ambiguous); table covers the current cycle 2009-2020.
+const ALLIANCE_YEAR_LETTER = { P: 2009, R: 2010, T: 2011, V: 2012, X: 2013, B: 2014, D: 2015, F: 2016, H: 2017, K: 2018, M: 2019, Q: 2020 };
+// Two letters per month (first/second half); both map to the same calendar month.
+const ALLIANCE_MONTH_LETTER = { A: 1, B: 1, C: 2, D: 2, E: 3, F: 3, G: 4, H: 4, J: 5, K: 5, L: 6, M: 6, N: 7, Q: 7, P: 8, S: 8, R: 9, U: 9, T: 10, W: 10, V: 11, Y: 11, X: 12, Z: 12 };
 function alliance(serial) {
-  const raw = String(serial || '').trim();
-  if (/^[A-Za-z]/.test(raw)) return res({ confidence: 'low', method: 'alliance-legacy',
-    note: 'legacy letter-prefixed Alliance serial — leading-digit rule does not apply; verify via nameplate/Alliance lookup' });
+  const raw = String(serial || '').trim().toUpperCase();
+  // IPSO / European format first: date is the LAST two letters (penultimate=year, last=month).
+  const tail = raw.match(/([A-Z])([A-Z])$/);
+  if (tail && ALLIANCE_YEAR_LETTER[tail[1]] && ALLIANCE_MONTH_LETTER[tail[2]]) {
+    const year = ALLIANCE_YEAR_LETTER[tail[1]], month = ALLIANCE_MONTH_LETTER[tail[2]];
+    return res({ year, month, confidence: 'medium', method: 'alliance-IPSO-trailing',
+      note: `Alliance/IPSO (European) trailing date code: ${tail[1]}=year ${year}, ${tail[2]}=month ${month} — verify with Alliance (year letters cycle ~20 yrs)` });
+  }
+  // Legacy US letter-prefixed serials — leading-digit rule does not apply.
+  if (/^[A-Z]/.test(raw)) return res({ confidence: 'low', method: 'alliance-legacy',
+    note: 'legacy letter-prefixed Alliance serial — verify via nameplate/Alliance lookup' });
+  // US domestic YYMM.
   const d = digitsOnly(raw);
   if (d.length < 4) return res({ method: 'alliance-YYMM', note: 'serial too short for a YYMM date prefix' });
   const year = resolve2DigitYear(d.slice(0, 2));
   const yearOk = year >= 1990 && year <= currentYear() + 1;
   const mm = parseInt(d.slice(2, 4), 10);
   const month = mm >= 1 && mm <= 12 ? mm : null;
-  return res({ year: yearOk ? year : null, month, confidence: yearOk ? 'high' : 'low', method: 'alliance-YYMM',
-    note: 'Alliance YYMM: YY=year' + (month ? `, MM=month ${month}` : ' (digits 3-4 not a valid month → month unknown)') });
+  if (yearOk) return res({ year, month, confidence: 'high', method: 'alliance-YYMM',
+    note: 'Alliance (US domestic) YYMM: YY=year' + (month ? `, MM=month ${month}` : ' (digits 3-4 not a valid month → month unknown)') });
+  return res({ confidence: 'low', method: 'alliance',
+    note: 'Alliance serial not in US-domestic YYMM or IPSO trailing-letter form — verify with Alliance (possible unlisted plant/era code)' });
 }
 function aaon(serial) {
   const d = digitsOnly(serial);
