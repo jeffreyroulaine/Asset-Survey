@@ -1,6 +1,9 @@
 /**
  * pilot.js — run the decoder against real ground-truth serials and score it.
  * Usage: node decoder/pilot.js
+ *
+ * Metric that matters: PRECISION on confident decodes (when the tool commits to a
+ * year, is it right?). Everything else is an honest abstention or a data-quality flag.
  */
 const { decode } = require('./serialDecoder');
 const truth = require('./groundTruth');
@@ -11,55 +14,44 @@ let confident = 0, confidentCorrect = 0, confidentWrong = 0, abstained = 0, unre
 
 for (const t of truth) {
   const r = decode(t.brand, t.serial, t.model);
-  const decoded = r.year;
+  const hasYear = r.year != null;
   const isConfident = r.confidence === 'high' || r.confidence === 'medium';
-  const isAbstain = r.method === 'lookup' || r.method === 'unsupported';
-  const isUnreadable = r.confidence === 'none' && !isAbstain;
+  const isUnreadable = r.decoderMethod === 'unreadable';
 
   let verdict;
-  if (isConfident && decoded === t.recordedYear) { verdict = 'MATCH'; confident++; confidentCorrect++; }
-  else if (isConfident && decoded !== t.recordedYear) { verdict = 'WRONG'; confident++; confidentWrong++; }
-  else if (isAbstain) { verdict = 'lookup'; abstained++; }
-  else { verdict = 'unreadable'; unreadable++; }
+  if (isUnreadable) { verdict = 'unreadable'; unreadable++; }
+  else if (isConfident && hasYear && r.year === t.recordedYear) { verdict = 'MATCH'; confident++; confidentCorrect++; }
+  else if (isConfident && hasYear) { verdict = 'WRONG'; confident++; confidentWrong++; }
+  else { verdict = 'abstain'; abstained++; } // lookup / low-confidence / era-mismatch
 
-  rows.push({
-    brand: t.canonical || t.brand, equip: t.equip, serial: t.serial,
-    recorded: t.recordedYear, decoded: decoded ?? '—', conf: r.confidence,
-    verdict, note: r.note,
-  });
+  rows.push({ brand: r.canonical || t.brand, equip: t.equip, serial: t.serial,
+    recorded: t.recordedYear, decoded: hasYear ? r.year : '—', conf: r.confidence, verdict, note: r.note });
 }
 
-// ── table ─────────────────────────────────────────────────────────────────
-console.log('\n' + '='.repeat(120));
+console.log('\n' + '='.repeat(122));
 console.log('  PILOT: serial-number decoder vs. hand-recorded manufacture dates (Nashville HWS)');
-console.log('='.repeat(120));
-console.log('  ' + pad('BRAND', 16) + pad('EQUIP', 22) + pad('SERIAL', 16) +
-            pad('REC', 6) + pad('DECODED', 9) + pad('CONF', 8) + 'VERDICT');
-console.log('  ' + '-'.repeat(116));
-for (const r of rows) {
-  console.log('  ' + pad(r.brand, 16) + pad(r.equip, 22) + pad(r.serial, 16) +
-              pad(r.recorded, 6) + pad(r.decoded, 9) + pad(r.conf, 8) + r.verdict);
-}
+console.log('='.repeat(122));
+console.log('  ' + pad('BRAND', 16) + pad('EQUIP', 22) + pad('SERIAL', 16) + pad('REC', 6) + pad('DECODED', 9) + pad('CONF', 8) + 'VERDICT');
+console.log('  ' + '-'.repeat(118));
+for (const r of rows)
+  console.log('  ' + pad(r.brand, 16) + pad(r.equip, 22) + pad(r.serial, 16) + pad(r.recorded, 6) + pad(r.decoded, 9) + pad(r.conf, 8) + r.verdict);
 
-// ── summary ─────────────────────────────────────────────────────────────
 const total = truth.length;
 const precision = confident ? Math.round((confidentCorrect / confident) * 100) : 0;
 const coverage = Math.round((confident / total) * 100);
-
-console.log('\n  ' + '-'.repeat(116));
+console.log('\n  ' + '-'.repeat(118));
 console.log('  RESULTS');
 console.log(`    Total ground-truth rows tested ........ ${total}`);
 console.log(`    Confident decodes (high/medium) ....... ${confident}`);
 console.log(`       ├─ matched recorded year .......... ${confidentCorrect}`);
 console.log(`       └─ wrong ........................... ${confidentWrong}`);
-console.log(`    Correctly abstained (lookup required) . ${abstained}`);
+console.log(`    Honest abstentions (lookup/low) ....... ${abstained}`);
 console.log(`    Flagged unreadable (bad serial data) .. ${unreadable}`);
-console.log('  ' + '-'.repeat(116));
+console.log('  ' + '-'.repeat(118));
 console.log(`    PRECISION on confident decodes ........ ${precision}%  (${confidentCorrect}/${confident})`);
 console.log(`    COVERAGE (confident / all rows) ....... ${coverage}%  (${confident}/${total})`);
-console.log('  ' + '='.repeat(116) + '\n');
+console.log('  ' + '='.repeat(118) + '\n');
 
-// ── things that need a human eyeball ────────────────────────────────────
 const flags = rows.filter((r) => r.verdict === 'WRONG' || r.verdict === 'unreadable');
 if (flags.length) {
   console.log('  NEEDS ATTENTION:');
