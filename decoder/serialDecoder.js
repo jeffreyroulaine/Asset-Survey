@@ -40,21 +40,32 @@ function digitsOnly(s) {
 // ── Alliance Laundry Systems (Unimac, Speed Queen, Huebsch, IPSO) ─────────
 // Format: YYWWxxxxxx — first 2 digits = year, next 2 = week of manufacture.
 function decodeAlliance(serial) {
-  const d = digitsOnly(serial);
-  if (d.length < 6) {
-    return { year: null, confidence: 'none', method: 'alliance-YYWW',
-             note: 'serial too short to contain a YYWW date prefix' };
+  const raw = String(serial || '').trim();
+  // Legacy Alliance/Speed Queen/Huebsch serials used letter-prefixed date codes
+  // that the leading-digit rule does NOT decode — flag for lookup, never guess.
+  if (/^[A-Za-z]/.test(raw)) {
+    return { year: null, month: null, week: null, confidence: 'low', method: 'alliance-legacy',
+             note: 'legacy letter-prefixed Alliance serial — leading-digit rule does not apply; ' +
+                   'verify via nameplate date or Alliance lookup' };
   }
+  const d = digitsOnly(raw);
+  if (d.length < 4) {
+    return { year: null, confidence: 'none', method: 'alliance-YYMM',
+             note: 'serial too short to contain a YYMM date prefix' };
+  }
+  // Modern Alliance format: digits 1-2 = year (robust), digits 3-4 = month (01-12).
+  // Digits 3-4 are NOT always a valid month across product lines/eras — so the
+  // YEAR is the confident signal; month is reported only when 01-12.
   const year = resolve2DigitYear(d.slice(0, 2));
-  const week = parseInt(d.slice(2, 4), 10);
-  const weekOk = week >= 1 && week <= 53;
-  const yearOk = year >= 1985 && year <= currentYear() + 1;
+  const yearOk = year >= 1990 && year <= currentYear() + 1;
+  const mm = parseInt(d.slice(2, 4), 10);
+  const month = mm >= 1 && mm <= 12 ? mm : null;
   return {
-    year, week: weekOk ? week : null, month: null,
-    confidence: yearOk && weekOk ? 'high' : yearOk ? 'medium' : 'low',
-    method: 'alliance-YYWW',
-    note: 'Alliance (Unimac/Speed Queen/Huebsch): YYWW prefix — yr' +
-          (weekOk ? `, wk ${week}` : ''),
+    year: yearOk ? year : null, month, week: null,
+    confidence: yearOk ? 'high' : 'low',
+    method: 'alliance-YYMM',
+    note: 'Alliance (Unimac/Speed Queen/Huebsch): YY=year' +
+          (month ? `, MM=month ${month}` : ' (digits 3-4 not a valid month → month unknown)'),
   };
 }
 
