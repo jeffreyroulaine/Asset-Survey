@@ -836,6 +836,9 @@ CRITICAL RULES:
 - If part of a field is blurry or cut off, transcribe only the legible portion and mark that field as low confidence.
 - Do not confuse part numbers, ratings, voltages, or certification numbers with the model or serial number. Model numbers are usually labeled "Model", "M/N", "MOD"; serials are labeled "Serial", "S/N", "SER".
 
+BRANDS COMMONLY FOUND IN THESE PROPERTIES (if the tag text closely resembles one of these, use the correct spelling; watch for OCR confusions like Daikin/Dankin, Manitowoc/Manitowac, Greenheck/Green Heck, Raypak/Raypack, Precor/Procor):
+AAON, A.O. Smith, Aerco, ASCO, Atosa, BAC (Baltimore Aircoil), Blodgett, Bradford White, Bryan, Bryant, Carrier, Champion, Cummins, Daikin, Dayton, Ecolab, Evapco, Generac, Glastender, Greenheck, Hayward, Hobart, Hoshizaki, Huebsch, Keating, Kinetico, Kohler, Kolpak, La Cimbali, Lennox, LG, Lochinvar, MagiKitch'n, Manitowoc, McQuay, Mitsubishi, Moffat, Norlake, Otis, Payne, Peloton, Pentair, Pitco, Polaris, Precor, Raypak, Rheem, Ruud, Scotsman, Simplex, Southbend, Taco, Technogym, Trane, Traulsen, True, UniMac, Unox, Vulcan, Welbilt, Whirlpool
+
 Extract:
 - make: Manufacturer or brand name
 - modelNumber: Model number or model name
@@ -870,7 +873,15 @@ VERIFIED SERIAL DATE-CODE FORMATS (confirmed against field survey data — apply
 
 Based on this information and your knowledge:
 1. yearOfService: If the serial matches a verified format above, decode it and append "(from serial)" — e.g. "2016 (from serial)". If the manufacturer is not listed but you confidently know its date-code format, decode and append "(from serial)". Otherwise give the likely installation year range for this model, e.g. "2015–2020 (estimate)".
-2. estimatedLifecycle: Typical operational lifespan for this equipment type in commercial/hotel service (e.g., "15–20 years")
+2. estimatedLifecycle: Use these COMPANY-STANDARD useful-life values (from this company's completed capital surveys) when the equipment type matches; otherwise use your best commercial/hotel estimate:
+- RTU / DOAS / split system / heat pump / AHU / cooling tower / exhaust fan / chiller: 20 years
+- Fire pump / fire alarm panel / generator / transfer switch / elevator: 20 years
+- Commercial washer / dryer (UniMac, Milnor class): 20 years; residential-grade laundry: 10 years
+- Walk-in cooler/freezer: 20 years
+- Boiler: 15 years; water heater: 12–15 years; storage tank: 15 years; pump: 15 years; water softener: 15 years
+- Ice machine: 15 years; reach-in fridge / freezer / cooler: 15 years
+- Kitchen cooking (fryer, oven, grill, flattop, range, steamer): 10 years; PTAC: 10 years; pool equipment (heater, pump, filter): 10 years
+- Fitness equipment (treadmill, elliptical, bike, strength): 7 years
 
 Return ONLY valid JSON: {"yearOfService":"","estimatedLifecycle":""}
 Always provide reasonable estimates — never leave fields empty.`
