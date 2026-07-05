@@ -382,6 +382,7 @@
             <label class="form-label">Serial Number</label>
             <input class="form-input" id="f-serialNumber" placeholder="e.g. 2319G12345">
           </div>
+          <button class="btn btn-outline btn-full" id="relookupBtn" onclick="relookupFromFields()" style="margin-bottom:13px">🔁 Re-run AI Lookup with My Corrections</button>
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">Year of Service</label>
@@ -1397,6 +1398,45 @@ function clearConfidenceWarnings() {
   document.querySelectorAll('.field-warn').forEach(el => el.classList.remove('field-warn'));
 }
 
+// ══════════════ RE-LOOKUP FROM CORRECTED FIELDS ══════════════
+// Re-runs lifecycle, serial decoding, and web pricing using whatever is
+// in the form now — never overwrites make/model/serial the user typed.
+async function relookupFromFields() {
+  const make   = document.getElementById('f-make').value.trim();
+  const model  = document.getElementById('f-modelNumber').value.trim();
+  const serial = document.getElementById('f-serialNumber').value.trim();
+  const type   = document.getElementById('f-equipmentType').value.trim();
+  if (!make && !model) { showToast('⚠️ Enter at least Make or Model first'); return; }
+  if (!getApiKey()) { openSettings(); return; }
+
+  const btn = document.getElementById('relookupBtn');
+  const orig = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '⏳ Looking up…';
+  document.getElementById('aiAlert').innerHTML =
+    `<div class="alert alert-info">⏳ Re-running lifecycle &amp; pricing lookup with your corrected info…</div>`;
+
+  try {
+    const hint = document.getElementById('aiHint').value.trim() || type;
+    const searchQuery = [make, model, type].filter(Boolean).join(' ') + ' specifications lifespan year';
+    const [searchContext, msrpData] = await Promise.all([
+      searchDDG(searchQuery),
+      getMSRPInfo(make, model, type, hint).catch(() => null)
+    ]);
+    const info = await getEquipmentInfo(make, model, serial, type, searchContext);
+
+    if (info.yearOfService)      document.getElementById('f-yearOfService').value = info.yearOfService;
+    if (info.estimatedLifecycle) document.getElementById('f-estimatedLifecycle').value = info.estimatedLifecycle;
+    if (msrpData) renderMSRPResult(msrpData);
+
+    document.getElementById('aiAlert').innerHTML =
+      `<div class="alert alert-success">✅ Year, lifecycle &amp; pricing updated from your corrected info — your make/model/serial were not changed.</div>`;
+  } catch (err) {
+    document.getElementById('aiAlert').innerHTML =
+      `<div class="alert alert-error">⚠️ ${esc(err.message)}</div>`;
+  }
+  btn.disabled = false; btn.innerHTML = orig;
+}
+
 function renderMSRPResult(data) {
   const fmt = n => n ? '$' + Number(n).toLocaleString() : '—';
   const el = document.getElementById('msrpResult');
@@ -1667,6 +1707,7 @@ function openEditModal(id) {
       <div class="form-group"><label class="form-label">Model Number</label><input class="form-input" id="e-modelNumber" value="${esc(a.modelNumber)}"></div>
     </div>
     <div class="form-group"><label class="form-label">Serial Number</label><input class="form-input" id="e-serialNumber" value="${esc(a.serialNumber)}"></div>
+    <button class="btn btn-outline btn-full" id="editRelookupBtn" onclick="relookupEditFields()" style="margin-bottom:13px">🔁 Re-run AI Lookup with My Corrections</button>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Year of Service</label><input class="form-input" id="e-yearOfService" value="${esc(a.yearOfService)}"></div>
       <div class="form-group"><label class="form-label">Est. Lifecycle</label><input class="form-input" id="e-estimatedLifecycle" value="${esc(a.estimatedLifecycle)}"></div>
@@ -1738,6 +1779,39 @@ async function reanalyzeAsset(id) {
   }
   const btn = document.querySelector('#editModalBody .btn-primary');
   if (btn) btn.disabled = false;
+}
+
+async function relookupEditFields() {
+  const make   = document.getElementById('e-make').value.trim();
+  const model  = document.getElementById('e-modelNumber').value.trim();
+  const serial = document.getElementById('e-serialNumber').value.trim();
+  const type   = document.getElementById('e-equipmentType').value.trim();
+  if (!make && !model) { showToast('⚠️ Enter at least Make or Model first'); return; }
+  if (!getApiKey()) { showToast('⚠️ No API key set'); return; }
+
+  const btn = document.getElementById('editRelookupBtn');
+  const orig = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '⏳ Looking up…';
+  const alertEl = document.getElementById('editAnalysisAlert');
+  alertEl.innerHTML = `<div class="alert alert-info" style="margin-bottom:13px">⏳ Re-running lifecycle &amp; pricing lookup with your corrections…</div>`;
+
+  try {
+    const searchQuery = [make, model, type].filter(Boolean).join(' ') + ' specifications lifespan year';
+    const [searchContext, msrpData] = await Promise.all([
+      searchDDG(searchQuery),
+      getMSRPInfo(make, model, type, type).catch(() => null)
+    ]);
+    const info = await getEquipmentInfo(make, model, serial, type, searchContext);
+
+    if (info.yearOfService)      document.getElementById('e-yearOfService').value = info.yearOfService;
+    if (info.estimatedLifecycle) document.getElementById('e-estimatedLifecycle').value = info.estimatedLifecycle;
+    if (msrpData?.msrp)          document.getElementById('e-msrp').value = '$' + Number(msrpData.msrp).toLocaleString();
+
+    alertEl.innerHTML = `<div class="alert alert-success" style="margin-bottom:13px">✅ Year, lifecycle &amp; pricing updated — your make/model/serial were not changed. Review and tap Save Changes.</div>`;
+  } catch (err) {
+    alertEl.innerHTML = `<div class="alert alert-error" style="margin-bottom:13px">❌ ${esc(err.message)}</div>`;
+  }
+  btn.disabled = false; btn.innerHTML = orig;
 }
 
 function editSetCondition(value, btn) {
