@@ -856,13 +856,25 @@ async function getEquipmentInfo(make, model, serial, equipmentType, searchContex
     role: 'user',
     content: `${ctxLine}Equipment — Make: ${make||'Unknown'}, Model: ${model||'Unknown'}, Serial: ${serial||'Unknown'}, Type: ${equipmentType||'Unknown'}
 
+VERIFIED SERIAL DATE-CODE FORMATS (confirmed against field survey data — apply these first):
+- UniMac / Speed Queen / Huebsch (Alliance Laundry): first 4 digits = YYMM. e.g. 1605029896 = May 2016
+- A.O. Smith / State / Solid State / Lochinvar (13-digit serials only): first 4 digits = YYWW. e.g. 2301132336629 = week 1, 2023. Do NOT apply to shorter serials.
+- Bradford White: 1st letter = year in a 20-year cycle (M=2015, N=2016, P=2017, S=2018, T=2019, W=2020, X=2021, Y=2022, Z=2023, A=2024, B=2025, C=2026), 2nd letter = month. e.g. SC41065129 = 2018
+- Carrier / Bryant / Payne / ICP: first 4 digits = WWYY (week then year). e.g. 0716C37282 = week 7, 2016
+- Rheem / Ruud: letter then 4 digits = WWYY. e.g. A101615185 = week 10, 2016
+- AAON: first 4 digits = YYMM. e.g. 160901518 = Sept 2016
+- Scotsman: first 4 digits = YYMM. e.g. 1602130014148 = Feb 2016
+- Precor: letters then 4 digits = WWYY. e.g. AGMHG28140012 = week 28, 2014
+- Pitco / Cummins: letter then 2 digits = YY. e.g. G16CC018666 = 2016
+- Sanity check: decoded year must be between 1980 and the current year. If decoding produces an impossible year, do not use it.
+
 Based on this information and your knowledge:
-1. yearOfService: Many manufacturers encode the year/week of manufacture in the serial number (e.g., Carrier/Trane/Lennox/Rheem date codes). If you can decode a manufacture date from this serial number for this manufacturer, use it and append "(from serial)" — e.g., "2019 (from serial)". Only decode if you are confident in that manufacturer's serial format; otherwise give the likely installation year range for this model, e.g., "2015–2020 (estimate)".
+1. yearOfService: If the serial matches a verified format above, decode it and append "(from serial)" — e.g. "2016 (from serial)". If the manufacturer is not listed but you confidently know its date-code format, decode and append "(from serial)". Otherwise give the likely installation year range for this model, e.g. "2015–2020 (estimate)".
 2. estimatedLifecycle: Typical operational lifespan for this equipment type in commercial/hotel service (e.g., "15–20 years")
 
 Return ONLY valid JSON: {"yearOfService":"","estimatedLifecycle":""}
 Always provide reasonable estimates — never leave fields empty.`
-  }], 300);
+  }], 400);
   return parseJSON(text, { yearOfService: '', estimatedLifecycle: '' });
 }
 
