@@ -881,9 +881,9 @@ async function getEquipmentInfo(make, model, serial, equipmentType, searchContex
 VERIFIED SERIAL DATE-CODE FORMATS (confirmed against field survey data — apply these first):
 - UniMac / Speed Queen / Huebsch (Alliance Laundry), ALL-NUMERIC serials only: first 4 digits = YYMM. e.g. 1605029896 = May 2016. Alphanumeric Alliance serials (letters mixed in, e.g. 40F002829FH, 280FX001342FY) do NOT encode a date — factory confirmed; say "requires Alliance factory lookup" instead of decoding.
 - A.O. Smith / State / Solid State / Lochinvar (13-digit serials only): first 4 digits = YYWW. e.g. 2301132336629 = week 1, 2023. Do NOT apply to shorter serials.
-- Bradford White: 1st letter = year in a 20-year cycle (M=2015, N=2016, P=2017, S=2018, T=2019, W=2020, X=2021, Y=2022, Z=2023, A=2024, B=2025, C=2026), 2nd letter = month. e.g. SC41065129 = 2018
+- Bradford White (manufacturer-confirmed): 1st letter = year in a 20-year cycle A=2004/2024, B=2005/2025, C=2006/2026, D=2007, E=2008, F=2009, G=2010, H=2011, J=2012, K=2013, L=2014, M=2015, N=2016, P=2017, S=2018, T=2019, W=2020, X=2021, Y=2022, Z=2023 (skips I,O,Q,R,U,V; resolve decade from context); 2nd letter = month A=Jan…M=Dec skipping I. e.g. SC41065129 = Mar 2018
 - Carrier / Bryant / Payne / ICP: first 4 digits = WWYY (week then year). e.g. 0716C37282 = week 7, 2016
-- Rheem / Ruud: letter then 4 digits = WWYY. e.g. A101615185 = week 10, 2016
+- Rheem / Ruud (manufacturer-standard): serials starting with 4 DIGITS = MMYY (0316… = Mar 2016). Serials starting with a LETTER then 4 digits: the YEAR is digits 3–4 (A1016… = 2016, A1623… = 2023). Pre-2005 units may use YYWW instead — sanity-check against unit condition.
 - AAON: first 4 digits = YYMM. e.g. 160901518 = Sept 2016
 - Scotsman: first 4 digits = YYMM. e.g. 1602130014148 = Feb 2016
 - Precor: letters then 4 digits = WWYY. e.g. AGMHG28140012 = week 28, 2014

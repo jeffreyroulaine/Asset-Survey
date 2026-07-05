@@ -26,9 +26,9 @@ and 4 new manufacturer rules.
 | UniMac / Speed Queen / Huebsch / Alliance (ALL-NUMERIC serials only) | First 4 digits = YYMM | `1605029896` = May 2016 | 11 units across 4 properties; factory-consistent |
 | Alliance ALPHANUMERIC serials (large washer-extractors) | **No date code** — requires Alliance factory lookup | `40F002829FH` shipped 5/2016; `280FX001342FY` shipped 12/2016; `40F003349MK` shipped 7/2019 | Factory-confirmed via Alliance warranty portal (Boca Raton) |
 | A.O. Smith / State / Solid State / Lochinvar (13-digit serials only) | First 4 digits = YYWW | `2301132336629` = wk 1, 2023 | 5 units; do NOT apply to shorter serials (9-digit Lochinvar `112105473` was 2018, decodes wrong) |
-| Bradford White | 1st letter = year, 20-year cycle; 2nd letter = month | `SC41065129` = 2018; `ZD51364229` = 2023; `SJ42182097` = 2018 | 3 units, 2 independent properties. Cycle: L=2014 M=2015 N=2016 P=2017 S=2018 T=2019 W=2020 X=2021 Y=2022 Z=2023 A=2024 B=2025 C=2026 |
+| Bradford White | 1st letter = year, 20-year cycle A→K skipping I,O,Q,R,U,V (A=2004/2024 … Z=2023); 2nd letter = month A=Jan…M=Dec skipping I | `SC41065129` = Mar 2018; `ZD51364229` = Apr 2023; `SJ42182097` = Sep 2018 | 3 field units + **manufacturer-published chart confirmed (bradfordwhite.com FAQ, Building Intelligence Center)** |
 | Carrier / Bryant / Payne / ICP | First 4 digits = WWYY | `0716C37282` = wk 7, 2016; `1820E06460` = wk 18, 2020 | 14+ units. Weeks 01–53 valid |
-| Rheem / Ruud | Letter + 4 digits = WWYY | `A101615185` = wk 10, 2016; `A162304208` = wk 16, 2023 | 3 units, 2 properties |
+| Rheem / Ruud | Digit-leading serials: MMYY (`0316…` = Mar 2016). Letter-leading serials: year = digits 3–4 (`A1016…` = 2016). Pre-2005 may be YYWW | `A101615185` = 2016; `A162304208` = 2023 | 3 field units + **industry-published standard confirmed (rheem.com, Building Intelligence Center, InspectAPedia)** |
 | AAON | First 4 digits = YYMM | `160901518` = Sep 2016 | 1 strong + several partial |
 | Scotsman | First 4 digits = YYMM | `1602130014148` = Feb 2016 | 4 units |
 | Precor | Letters, then 4 digits = WWYY | `AGMHG28140012` = wk 28, 2014 | 4 units |
@@ -50,10 +50,11 @@ and 4 new manufacturer rules.
 | True refrigeration | Sequential serials, no date encoding observed (`1-4810796` = 2007, `7942739` = 2014) | Estimate or dealer lookup |
 | Manitowoc | Hanover survey data contained duplicated serials with conflicting years; no reliable pattern derivable | Estimate or dealer lookup |
 
-## Pending confirmation (user's calls)
+## Pending confirmation
 
-- Bradford White letter cycle — 3 data points, would like dealer confirmation
-- Rheem/Ruud WWYY — 3 data points, would like dealer confirmation
+None — all active rules are either multi-property field-verified,
+manufacturer-published, or factory-confirmed. (Bradford White and Rheem/Ruud
+were confirmed against manufacturer-published charts July 2026.)
 
 ## Company lifecycle standards (from completed surveys)
 
