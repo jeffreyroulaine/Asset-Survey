@@ -324,10 +324,20 @@
           <button class="btn btn-primary" style="flex:1" onclick="triggerCapture()">📷 Camera / Library</button>
           <button class="btn btn-outline" id="clearBtn" onclick="clearCapture()" style="display:none">✕ Clear</button>
         </div>
-        <div class="form-group mt-12" style="margin-bottom:0">
+        <div class="form-group mt-12">
           <label class="form-label">Tell the AI What This Is (Optional)</label>
           <input class="form-input" id="aiHint" placeholder="e.g. pool pump, PTAC unit, walk-in cooler…">
           <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Helps the AI read the tag correctly and price the right equipment class</div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Full Equipment Photo (Optional — improves accuracy)</label>
+          <div class="ref-photo-zone" id="refPhotoZone" onclick="triggerRefCapture()">
+            <img class="ref-preview-img" id="refPreview" alt="Reference photo">
+            <div class="ref-placeholder" id="refPlaceholder">📸 Tap to add a photo of the whole unit</div>
+          </div>
+          <input type="file" id="refFileInput" accept="image/*" onchange="handleRefPhoto(event)">
+          <button id="refClearBtn" onclick="clearRefPhoto()" style="display:none;background:none;border:none;font-size:12px;color:var(--text-muted);margin-top:4px;cursor:pointer;padding:0">✕ Remove photo</button>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:4px">The AI uses this to judge size and equipment class for pricing</div>
         </div>
       </div>
     </div>
@@ -405,15 +415,6 @@
               <button class="condition-btn" onclick="setCondition('Poor')">🟠 Poor</button>
               <button class="condition-btn" onclick="setCondition('Non-Functional')">🔴 Non-Functional</button>
             </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Reference Photo — Full Equipment View (Optional)</label>
-            <div class="ref-photo-zone" id="refPhotoZone" onclick="triggerRefCapture()">
-              <img class="ref-preview-img" id="refPreview" alt="Reference photo">
-              <div class="ref-placeholder" id="refPlaceholder">📸 Tap to add a photo of the full unit</div>
-            </div>
-            <input type="file" id="refFileInput" accept="image/*" onchange="handleRefPhoto(event)">
-            <button id="refClearBtn" onclick="clearRefPhoto()" style="display:none;background:none;border:none;font-size:12px;color:var(--text-muted);margin-top:4px;cursor:pointer;padding:0">✕ Remove photo</button>
           </div>
           <div class="form-group">
             <label class="form-label">Notes</label>
@@ -790,9 +791,12 @@ const DB = {
 };
 
 // ══════════════ ANTHROPIC API ══════════════
-async function callClaude(messages, maxTokens = 512) {
+async function callClaude(messages, maxTokens = 512, opts = {}) {
   const key = getApiKey();
   if (!key) throw new Error('No API key set. Tap ⚙️ to add your Anthropic API key.');
+
+  const body = { model: MODEL, max_tokens: maxTokens, messages };
+  if (opts.tools) body.tools = opts.tools;
 
   const res = await fetch(ANTHROPIC_API, {
     method: 'POST',
@@ -802,7 +806,7 @@ async function callClaude(messages, maxTokens = 512) {
       'content-type': 'application/json',
       'anthropic-dangerous-direct-browser-access': 'true'
     },
-    body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, messages })
+    body: JSON.stringify(body)
   });
 
   if (!res.ok) {
@@ -813,23 +817,37 @@ async function callClaude(messages, maxTokens = 512) {
   }
 
   const data = await res.json();
-  return data.content[0].text.trim();
+  // With web search enabled the content array holds several block types;
+  // gather every text block, the final one carries the answer.
+  return data.content.filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
 }
 
 function parseJSON(text, fallback = {}) {
+  // First try the widest {...} span (handles nested JSON like the confidence object).
   try {
     const m = text.match(/\{[\s\S]*\}/);
-    return m ? { ...fallback, ...JSON.parse(m[0]) } : fallback;
-  } catch { return fallback; }
+    if (m) return { ...fallback, ...JSON.parse(m[0]) };
+  } catch {}
+  // Web-search replies mix prose with JSON; fall back to the LAST flat {...} that parses.
+  const candidates = text.match(/\{[^{}]*\}/g) || [];
+  for (let i = candidates.length - 1; i >= 0; i--) {
+    try { return { ...fallback, ...JSON.parse(candidates[i]) }; } catch {}
+  }
+  return fallback;
 }
 
-async function analyzeTagImage(base64, mimeType, hint) {
+async function analyzeTagImage(base64, mimeType, hint, refBase64, refMime) {
   const hintLine = hint ? `The surveyor identified this equipment as: "${hint}". Use this to interpret the tag correctly.\n\n` : '';
+  const refLine = refBase64 ? 'The SECOND image shows the full equipment unit — use it to judge the equipment type, size, and class.\n\n' : '';
+  const images = [
+    { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } }
+  ];
+  if (refBase64) images.push({ type: 'image', source: { type: 'base64', media_type: refMime || 'image/jpeg', data: refBase64 } });
   const text = await callClaude([{
     role: 'user',
     content: [
-      { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
-      { type: 'text', text: `${hintLine}You are analyzing an equipment identification tag or nameplate photo taken during a hotel/commercial building asset survey.
+      ...images,
+      { type: 'text', text: `${hintLine}${refLine}You are analyzing an equipment identification tag or nameplate photo (the FIRST image) taken during a hotel/commercial building asset survey.
 
 CRITICAL RULES:
 - Transcribe ONLY what is actually printed and legible on the tag. Do NOT guess or invent characters.
@@ -900,16 +918,18 @@ Make: ${make || 'Unknown'}
 Model: ${model || 'Unknown'}
 Type: ${equipType || 'Unknown'}${hint ? `\nSurveyor's description: ${hint}` : ''}
 
-Provide:
-1. msrp: Estimated list price in USD as a number (e.g. 12500). Be conservative and realistic for the COMMERCIAL grade of this equipment class and size. If you do not recognize this specific model and cannot make a defensible category-based estimate, use null rather than guessing.
-2. isObsolete: true ONLY if you are confident this model is discontinued. false if currently available or if you are unsure.
-3. replacementModel: If obsolete, the current manufacturer equivalent model name. null if current or unsure.
-4. replacementMSRP: If obsolete, the current equivalent estimated list price as a number. null if current or unsure.
-5. replacementNote: Brief note about the replacement, upgrade, or basis for the price estimate. null if nothing useful.
+SEARCH THE WEB for this exact model to find current availability and real pricing (manufacturer pages, dealer listings, equipment suppliers). Base your answer on what you find, not memory. If searches return nothing for the exact model, search the equipment category and size class.
 
-Return ONLY valid JSON:
+Then provide:
+1. msrp: Realistic current list price in USD as a number (e.g. 12500) for the COMMERCIAL grade of this equipment. Prefer prices found in search results. If you find nothing defensible, use null rather than guessing.
+2. isObsolete: true ONLY if search results confirm this model is discontinued. false if currently available or if you are unsure.
+3. replacementModel: If obsolete, the current manufacturer equivalent model name found in your search. null if current or unsure.
+4. replacementMSRP: If obsolete, the current equivalent's list price as a number. null if current or unsure.
+5. replacementNote: Brief note citing what you found (e.g. "Dealer listings show $8,200–$9,500; superseded by model X"). null if nothing useful.
+
+End your reply with ONLY this JSON on its own line:
 {"msrp":12500,"isObsolete":false,"replacementModel":null,"replacementMSRP":null,"replacementNote":null}`
-  }], 400);
+  }], 1500, { tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }] });
   const result = parseJSON(text, { msrp: null, isObsolete: false, replacementModel: null, replacementMSRP: null, replacementNote: null });
   if (!result.msrp && result.msrp !== 0) return null;
   return result;
@@ -1304,8 +1324,8 @@ async function analyzeImage() {
   const msgs = [
     ['Reading tag with Claude Vision…', 'Sending image to AI'],
     ['Identifying equipment…', 'Extracting make, model & serial number'],
-    ['Searching equipment database…', 'Querying DuckDuckGo for specifications'],
-    ['Looking up MSRP & lifecycle…', 'Checking pricing and service life data']
+    ['Searching the web for this model…', 'Live search: pricing & availability'],
+    ['Looking up MSRP & lifecycle…', 'Decoding serial and checking service life']
   ];
   let step = 0;
   const ticker = setInterval(() => {
@@ -1316,14 +1336,16 @@ async function analyzeImage() {
     const base64 = await fileToBase64(currentFile);
     const mimeType = currentFile.type || 'image/jpeg';
     const hint = document.getElementById('aiHint').value.trim();
+    const refBase64 = currentRefBlob ? await fileToBase64(currentRefBlob) : null;
+    const refMime = currentRefBlob ? (currentRefBlob.type || 'image/jpeg') : null;
 
-    const extracted = await analyzeTagImage(base64, mimeType, hint);
+    const extracted = await analyzeTagImage(base64, mimeType, hint, refBase64, refMime);
     if (hint && !extracted.equipmentType) extracted.equipmentType = hint;
 
     const searchQuery = [extracted.make, extracted.modelNumber, extracted.equipmentType, 'specifications lifespan year'].filter(Boolean).join(' ');
     const [searchContext, msrpData] = await Promise.all([
       searchDDG(searchQuery),
-      getMSRPInfo(extracted.make, extracted.modelNumber, extracted.equipmentType, hint)
+      getMSRPInfo(extracted.make, extracted.modelNumber, extracted.equipmentType, hint).catch(() => null)
     ]);
 
     const info = await getEquipmentInfo(extracted.make, extracted.modelNumber, extracted.serialNumber, extracted.equipmentType, searchContext);
@@ -1685,13 +1707,15 @@ async function reanalyzeAsset(id) {
     const base64  = await fileToBase64(a.imageBlob);
     const mime    = a.imageBlob.type || 'image/jpeg';
     const hint    = a.equipmentType || '';
+    const refB64  = a.referenceBlob ? await fileToBase64(a.referenceBlob) : null;
+    const refMime = a.referenceBlob ? (a.referenceBlob.type || 'image/jpeg') : null;
 
-    const extracted = await analyzeTagImage(base64, mime, hint);
+    const extracted = await analyzeTagImage(base64, mime, hint, refB64, refMime);
 
     const searchQuery = [extracted.make, extracted.modelNumber, extracted.equipmentType].filter(Boolean).join(' ') + ' specifications lifespan year';
     const [searchContext, msrpData] = await Promise.all([
       searchDDG(searchQuery),
-      getMSRPInfo(extracted.make, extracted.modelNumber, extracted.equipmentType, hint)
+      getMSRPInfo(extracted.make, extracted.modelNumber, extracted.equipmentType, hint).catch(() => null)
     ]);
     const info = await getEquipmentInfo(extracted.make, extracted.modelNumber, extracted.serialNumber, extracted.equipmentType, searchContext);
 
