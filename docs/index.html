@@ -888,6 +888,11 @@ VERIFIED SERIAL DATE-CODE FORMATS (confirmed against field survey data — apply
 - Scotsman: first 4 digits = YYMM. e.g. 1602130014148 = Feb 2016
 - Precor: letters then 4 digits = WWYY. e.g. AGMHG28140012 = week 28, 2014
 - Pitco / Cummins: letter then 2 digits = YY. e.g. G16CC018666 = 2016
+- Trane (serials STARTING with digits): first 5 digits = YY + day-of-year. e.g. 18133TMU2F = 2018 (day 133); 17222URC3F = 2017. Trane serials starting with letters (e.g. OA272176) do NOT follow this — do not decode those.
+- Mitsubishi mini-splits: 1st digit = last digit of the year (8 = 2018, 9 = 2019, etc.); resolve the decade from equipment condition/context. e.g. 83C09876 = 2018.
+- Bock water heaters: first 2 digits = YY. e.g. 18033186T = 2018
+- Baldor motors: letter then YYMM. e.g. C1803160232 = Mar 2018
+- Hoshizaki: letter-year code that is NOT publicly consistent (field data shows H = 2018 but S = 2007) — do NOT decode Hoshizaki serials; say "requires Hoshizaki date-code lookup".
 - Sanity check: decoded year must be between 1980 and the current year. If decoding produces an impossible year, do not use it.
 
 Based on this information and your knowledge:
