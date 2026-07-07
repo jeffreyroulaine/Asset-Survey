@@ -546,6 +546,7 @@
       <div id="reviewList"></div>
       <div style="height:14px"></div>
       <button class="btn btn-success btn-full" onclick="exportSession()" style="margin-bottom:8px">⬇️ Export Session to Excel</button>
+      <button class="btn btn-outline btn-full" onclick="factoryLookupEmail()" style="margin-bottom:8px">📧 Factory Lookup Email</button>
       <button class="btn btn-outline btn-full" onclick="closeReviewModal()">Close</button>
       <div style="height:8px"></div>
     </div>
@@ -863,13 +864,14 @@ Extract:
 - modelNumber: Model number or model name
 - serialNumber: Serial number
 - equipmentType: Equipment type (e.g. "rooftop HVAC unit", "boiler", "chiller", "pump", "air handler", "cooling tower", "pneumatic tank", "elevator", etc.)
+- mfgDate: If the tag or a nearby label shows an EXPLICIT manufacture/production date (e.g. "MFG DATE 07/19", "DATE OF MFG 2019", "MANUFACTURED 03/2016"), transcribe the year, e.g. "2019". Alliance Laundry (UniMac/Speed Queen/Huebsch) prints this on newer installation labels — look for it especially on laundry equipment. "" if no explicit date is printed.
 - confidence: For each field above, "high" if clearly legible, "low" if partially legible, inferred, or uncertain
 
 Return ONLY valid JSON with exactly these keys. Use "" if a field is not visible.
-Example: {"make":"Carrier","modelNumber":"50XC-060","serialNumber":"2319G12345","equipmentType":"rooftop HVAC unit","confidence":{"make":"high","modelNumber":"low","serialNumber":"high","equipmentType":"high"}}` }
+Example: {"make":"Carrier","modelNumber":"50XC-060","serialNumber":"2319G12345","equipmentType":"rooftop HVAC unit","mfgDate":"","confidence":{"make":"high","modelNumber":"low","serialNumber":"high","equipmentType":"high"}}` }
     ]
   }], 600);
-  return parseJSON(text, { make: '', modelNumber: '', serialNumber: '', equipmentType: '', confidence: {} });
+  return parseJSON(text, { make: '', modelNumber: '', serialNumber: '', equipmentType: '', mfgDate: '', confidence: {} });
 }
 
 async function getEquipmentInfo(make, model, serial, equipmentType, searchContext) {
@@ -1362,6 +1364,8 @@ async function analyzeImage() {
     currentCondition = '';
     document.querySelectorAll('.condition-btn').forEach(b => b.className = 'condition-btn');
     populateForm({ ...extracted, ...info });
+    // A date printed on the tag beats any serial decode or estimate
+    if (extracted.mfgDate) document.getElementById('f-yearOfService').value = extracted.mfgDate + ' (from tag)';
     if (lastLocation) document.getElementById('f-location').value = lastLocation;
 
     if (msrpData) renderMSRPResult(msrpData);
@@ -1904,6 +1908,31 @@ async function removeFromSession(id) {
     updateBadge();
     await openReviewModal();
   } catch (err) { showToast('❌ ' + err.message); }
+}
+
+// Drafts one email listing every asset whose year still needs a factory
+// lookup, so the surveyor never has to phone the vendor serial-by-serial.
+async function factoryLookupEmail() {
+  if (!activeSession) return;
+  const assets = (await DB.getAll()).filter(a => a.sessionId === activeSession.id);
+  const need = assets.filter(a => /lookup/i.test(a.yearOfService || ''));
+  if (!need.length) { showToast('✅ No assets need a factory lookup'); return; }
+
+  const prop = getPropertyName() || activeSession.name;
+  const lines = need.map(a =>
+    `- ${[a.make, a.equipmentType].filter(Boolean).join(' ')} | Model: ${a.modelNumber || 'n/a'} | Serial: ${a.serialNumber || 'n/a'}`);
+  const allAlliance = need.every(a => /unimac|alliance|speed queen|huebsch/i.test(a.make || ''));
+  const to = allAlliance ? 'marcia.kowlessar@alliancels.com' : '';
+  const subject = encodeURIComponent(`Manufacture date lookup request — ${prop}`);
+  const body = encodeURIComponent(
+`Hi,
+
+Could you look up the ship/manufacture dates for the following units at ${prop}?
+
+${lines.join('\n')}
+
+Thank you!`);
+  location.href = `mailto:${to}?subject=${subject}&body=${body}`;
 }
 
 async function exportSession() {
