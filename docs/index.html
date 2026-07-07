@@ -435,10 +435,11 @@
   <div class="search-bar">
     <input class="search-input" id="searchInput" type="search" placeholder="🔎  Search by make, model, serial, location…" oninput="filterAssets()">
   </div>
-  <div style="margin-bottom:12px">
+  <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <select class="session-filter" id="sessionFilter" onchange="filterAssets()">
       <option value="">All sessions</option>
     </select>
+    <button class="btn btn-outline btn-sm" onclick="factoryLookupEmailAll()">📧 Lookup Email</button>
   </div>
   <div class="asset-count" id="assetCount"></div>
   <div id="assetList"></div>
@@ -1910,29 +1911,65 @@ async function removeFromSession(id) {
   } catch (err) { showToast('❌ ' + err.message); }
 }
 
-// Drafts one email listing every asset whose year still needs a factory
-// lookup, so the surveyor never has to phone the vendor serial-by-serial.
-async function factoryLookupEmail() {
-  if (!activeSession) return;
-  const assets = (await DB.getAll()).filter(a => a.sessionId === activeSession.id);
-  const need = assets.filter(a => /lookup/i.test(a.yearOfService || ''));
+// ── Factory lookup email: works for ANY recorded asset, any vendor ──
+// An asset needs a lookup when its year is blank or flagged unresolved.
+function needsLookup(a) {
+  const y = (a.yearOfService || '').trim();
+  return !y || /lookup|unknown|verify|n\/a/i.test(y);
+}
+
+function sendLookupEmail(assets, scopeLabel) {
+  const need = assets.filter(needsLookup);
   if (!need.length) { showToast('✅ No assets need a factory lookup'); return; }
 
-  const prop = getPropertyName() || activeSession.name;
-  const lines = need.map(a =>
-    `- ${[a.make, a.equipmentType].filter(Boolean).join(' ')} | Model: ${a.modelNumber || 'n/a'} | Serial: ${a.serialNumber || 'n/a'}`);
+  // Group by manufacturer so one email can be split/forwarded per vendor
+  const groups = {};
+  need.forEach(a => {
+    const k = (a.make || 'Unknown brand').trim() || 'Unknown brand';
+    (groups[k] = groups[k] || []).push(a);
+  });
+  const sections = Object.keys(groups).sort().map(brand => {
+    const lines = groups[brand].map(a =>
+      `- ${a.equipmentType || 'Equipment'} | Model: ${a.modelNumber || 'n/a'} | Serial: ${a.serialNumber || 'n/a'}${a.location ? ' | Location: ' + a.location : ''}${a.sessionName ? ' | Property session: ' + a.sessionName : ''}`);
+    return `${brand.toUpperCase()}:\n${lines.join('\n')}`;
+  });
+
   const allAlliance = need.every(a => /unimac|alliance|speed queen|huebsch/i.test(a.make || ''));
   const to = allAlliance ? 'marcia.kowlessar@alliancels.com' : '';
-  const subject = encodeURIComponent(`Manufacture date lookup request — ${prop}`);
+  const subject = encodeURIComponent(`Manufacture date lookup request — ${scopeLabel}`);
   const body = encodeURIComponent(
 `Hi,
 
-Could you look up the ship/manufacture dates for the following units at ${prop}?
+Could you look up the ship/manufacture dates for the following units?
 
-${lines.join('\n')}
+${sections.join('\n\n')}
 
 Thank you!`);
   location.href = `mailto:${to}?subject=${subject}&body=${body}`;
+  showToast(`📧 Drafting email for ${need.length} asset${need.length !== 1 ? 's' : ''}`);
+}
+
+// From the review modal — scoped to the active session
+async function factoryLookupEmail() {
+  if (!activeSession) return;
+  const assets = (await DB.getAll()).filter(a => a.sessionId === activeSession.id);
+  sendLookupEmail(assets, getPropertyName() || activeSession.name);
+}
+
+// From the Assets tab — respects the current session filter and search box
+async function factoryLookupEmailAll() {
+  let assets = await DB.getAll();
+  const sessId = document.getElementById('sessionFilter').value;
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  let label = getPropertyName() || 'All properties';
+  if (sessId) {
+    assets = assets.filter(a => a.sessionId === sessId);
+    const s = allSessions.find(x => x.id === sessId);
+    if (s) label = s.name;
+  }
+  if (q) assets = assets.filter(a =>
+    [a.make, a.modelNumber, a.serialNumber, a.equipmentType, a.location, a.notes, a.condition].some(v => (v||'').toLowerCase().includes(q)));
+  sendLookupEmail(assets, label);
 }
 
 async function exportSession() {
