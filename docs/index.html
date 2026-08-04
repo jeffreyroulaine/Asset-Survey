@@ -255,6 +255,43 @@
     .install-step-text { flex: 1; font-size: 15px; line-height: 1.5; }
     .install-step-text strong { color: var(--text); }
     .install-share-icon { display: inline-block; background: #007aff; color: white; width: 24px; height: 24px; border-radius: 5px; text-align: center; line-height: 24px; font-size: 14px; vertical-align: middle; }
+
+    /* Fast Capture toggle */
+    .fast-toggle-row { display:flex; align-items:center; gap:12px; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:12px 14px; margin-bottom:14px; }
+    .ft-text { flex:1; }
+    .ft-title { font-size:14px; font-weight:700; color:var(--text); }
+    .ft-sub { font-size:12px; color:var(--text-muted); margin-top:2px; line-height:1.35; }
+    .switch { position:relative; display:inline-block; width:52px; height:30px; flex:none; }
+    .switch input { opacity:0; width:0; height:0; }
+    .slider { position:absolute; cursor:pointer; inset:0; background:#cbd5e1; transition:.2s; border-radius:30px; }
+    .slider:before { content:""; position:absolute; height:24px; width:24px; left:3px; bottom:3px; background:#fff; transition:.2s; border-radius:50%; box-shadow:0 1px 3px rgba(0,0,0,.3); }
+    .switch input:checked + .slider { background:var(--green); }
+    .switch input:checked + .slider:before { transform:translateX(22px); }
+
+    /* Pending-enrichment banner */
+    .pending-banner { display:flex; align-items:center; gap:12px; background:#fff8e1; border:1px solid #f3d572; border-radius:var(--radius); padding:12px 14px; margin-bottom:12px; }
+    .pb-text { flex:1; font-size:13px; color:#8a6d00; line-height:1.35; }
+    .pb-text strong { color:#6b5400; }
+
+    /* Export selection modal */
+    .exp-type-row { display:flex; gap:8px; margin-bottom:16px; }
+    .exp-type-btn { flex:1; padding:12px 10px; border-radius:10px; border:2px solid var(--border); background:#fff; font-size:13px; font-weight:700; color:var(--text-muted); cursor:pointer; text-align:center; line-height:1.3; }
+    .exp-type-btn.sel { border-color:var(--blue); color:var(--blue); background:#eef6fb; }
+    .exp-type-sub { display:block; font-size:11px; font-weight:500; margin-top:3px; opacity:.85; }
+    .exp-sess { border:1px solid var(--border); border-radius:10px; margin-bottom:8px; overflow:hidden; background:#fff; }
+    .exp-sess-head { display:flex; align-items:center; gap:10px; padding:11px 12px; }
+    .exp-sess-head input[type=checkbox] { width:22px; height:22px; flex:none; accent-color:var(--blue); }
+    .exp-sess-title { flex:1; cursor:pointer; }
+    .exp-sess-name { font-size:14px; font-weight:700; color:var(--text); }
+    .exp-sess-meta { font-size:12px; color:var(--text-muted); margin-top:2px; }
+    .exp-caret { font-size:13px; color:var(--text-muted); transition:.2s; padding:4px; cursor:pointer; }
+    .exp-caret.open { transform:rotate(90deg); }
+    .exp-assets { display:none; padding:2px 12px 10px 44px; background:var(--bg); }
+    .exp-assets.open { display:block; }
+    .exp-asset { display:flex; align-items:center; gap:9px; padding:7px 0; font-size:13px; border-top:1px solid var(--border); color:var(--text); }
+    .exp-asset input[type=checkbox] { width:18px; height:18px; flex:none; accent-color:var(--blue); }
+    .exp-asset-need { font-size:10px; font-weight:700; color:#8a6d00; background:#fff3cd; border-radius:6px; padding:1px 6px; margin-left:auto; flex:none; }
+    .exp-empty { font-size:13px; color:var(--text-muted); padding:14px 4px; text-align:center; }
   </style>
 </head>
 <body>
@@ -340,6 +377,17 @@
           <div style="font-size:12px;color:var(--text-muted);margin-top:4px">The AI uses this to judge size and equipment class for pricing</div>
         </div>
       </div>
+    </div>
+
+    <div class="fast-toggle-row">
+      <div class="ft-text">
+        <div class="ft-title">⚡ Fast Capture</div>
+        <div class="ft-sub" id="fastSubText">Reads the tag only — year &amp; pricing are filled in later with “Process All.”</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="fastToggle" onchange="onFastToggle()">
+        <span class="slider"></span>
+      </label>
     </div>
 
     <div class="btn-row" style="margin-bottom:14px">
@@ -436,11 +484,13 @@
     <input class="search-input" id="searchInput" type="search" placeholder="🔎  Search by make, model, serial, location…" oninput="filterAssets()">
   </div>
   <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-    <select class="session-filter" id="sessionFilter" onchange="filterAssets()">
-      <option value="">All sessions</option>
+    <select class="session-filter" id="sessionFilter" onchange="onSessionFilterChange()">
+      <option value="">All surveys</option>
     </select>
+    <button class="btn btn-teal btn-sm" onclick="openExportModal()">⬇️ Export</button>
     <button class="btn btn-outline btn-sm" onclick="factoryLookupEmailAll()">📧 Lookup Email</button>
   </div>
+  <div id="pendingBanner"></div>
   <div class="asset-count" id="assetCount"></div>
   <div id="assetList"></div>
   <div class="empty-state" id="emptyState" style="display:none">
@@ -468,13 +518,18 @@
   </div>
 
   <div id="startSessionCard" class="card">
-    <div class="card-header">▶️ Start New Session</div>
+    <div class="card-header">▶️ Start New Survey</div>
     <div class="card-body">
       <div class="form-group">
-        <label class="form-label">Session Name</label>
+        <label class="form-label">Property Name <span style="color:var(--red,#c62828)">*</span></label>
+        <input class="form-input" id="newSessionProperty" placeholder="e.g. Boca Raton Marriott" maxlength="80">
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px">This name is stamped on every export for this survey — so it can never be confused with another property.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Area / Session Label (optional)</label>
         <input class="form-input" id="newSessionName" placeholder="e.g. Main Building – Floors 1–3" maxlength="80">
       </div>
-      <button class="btn btn-success btn-full" onclick="startSession()">▶️ Start Session</button>
+      <button class="btn btn-success btn-full" onclick="startSession()">▶️ Start Survey</button>
     </div>
   </div>
 
@@ -572,6 +627,28 @@
   </div>
 </div>
 
+
+<!-- ══════════════ EXPORT SELECTION MODAL ══════════════ -->
+<div class="modal-overlay" id="exportModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⬇️ Export Surveys <button class="modal-close" onclick="closeExportModal()">✕</button></div>
+    <div class="modal-body">
+      <label class="form-label">Export Type</label>
+      <div class="exp-type-row">
+        <div class="exp-type-btn sel" id="expType-field" onclick="setExportType('field')">📋 Field Capture Sheet<span class="exp-type-sub">Raw list + blank Year/Cost</span></div>
+        <div class="exp-type-btn" id="expType-full" onclick="setExportType('full')">📊 Full Capital Workbook<span class="exp-type-sub">3-tab priced projection</span></div>
+      </div>
+      <label class="form-label">Choose Surveys &amp; Assets</label>
+      <div style="font-size:12px;color:var(--text-muted);margin:-2px 0 10px">Tap a survey name to pick individual assets. Each property exports as its own clearly-named file.</div>
+      <div id="exportSessionList"></div>
+      <div style="height:14px"></div>
+      <button class="btn btn-success btn-full" id="exportSelectedBtn" onclick="doExportSelected()">⬇️ Export Field Sheet(s)</button>
+      <button class="btn btn-outline btn-full" onclick="closeExportModal()" style="margin-top:8px">Cancel</button>
+      <div style="height:8px"></div>
+    </div>
+  </div>
+</div>
 
 <div class="modal-overlay" id="logModal">
   <div class="modal-sheet">
@@ -994,8 +1071,28 @@ let activeSession = null;
 let lastLocation = '';
 let currentCondition = '';
 let isManualEntry = false;
+let currentEnriched = false;   // has the current survey had year+cost filled in?
+let assetFilterTouched = false; // has the user manually changed the Assets session filter?
 const objUrls = new Map();
 const refUrls = new Map();
+
+// ══════════════ FAST CAPTURE ══════════════
+function getFastCapture() { return localStorage.getItem('fast_capture') !== '0'; } // default ON
+function setFastCapture(on) { localStorage.setItem('fast_capture', on ? '1' : '0'); }
+function onFastToggle() {
+  setFastCapture(document.getElementById('fastToggle').checked);
+  updateFastUI();
+}
+function updateFastUI() {
+  const on = getFastCapture();
+  const t = document.getElementById('fastToggle'); if (t) t.checked = on;
+  const btn = document.getElementById('analyzeBtn');
+  if (btn) btn.innerHTML = on ? '⚡ Read Tag (Fast)' : '🔍 Analyze Tag with AI';
+  const sub = document.getElementById('fastSubText');
+  if (sub) sub.innerHTML = on
+    ? 'Reads the tag only — year &amp; pricing are filled in later with “Process All.”'
+    : 'Full lookup now — reads the tag, decodes the year, and searches pricing (slower).';
+}
 
 function makeId() {
   return crypto.randomUUID ? crypto.randomUUID()
@@ -1057,30 +1154,46 @@ async function loadActiveSession() {
 }
 
 async function startSession() {
+  const propEl = document.getElementById('newSessionProperty');
   const nameEl = document.getElementById('newSessionName');
-  const name = nameEl.value.trim();
-  if (!name) { showToast('⚠️ Enter a session name'); nameEl.focus(); return; }
+  const property = propEl.value.trim();
+  const label = nameEl.value.trim();
+  if (!property) { showToast('⚠️ Enter the property name'); propEl.focus(); return; }
 
   if (activeSession) {
     showToast('⚠️ End the current session first'); return;
   }
 
+  // The session's display name is the property, with the optional area appended.
+  const name = label ? `${property} — ${label}` : property;
+
   const session = {
     id: 'sess_' + Date.now(),
+    property,
+    areaLabel: label,
     name,
     startTime: new Date().toISOString(),
     endTime: null,
     status: 'active',
-    log: [{ time: new Date().toISOString(), action: 'Session started' }]
+    archived: false,
+    log: [{ time: new Date().toISOString(), action: `Survey started — ${property}` }]
   };
   await DB.putSession(session);
   activeSession = session;
   allSessions = [session, ...allSessions];
+  assetFilterTouched = false;   // Assets view follows the new survey
+  propEl.value = '';
   nameEl.value = '';
   updateSessionIndicator();
   updateSurveySessionGate();
   renderSessionsTab();
-  showToast('▶️ Session started — go to Survey tab');
+  showToast('▶️ Survey started — go to Survey tab');
+}
+
+// Resolve a session's property identity (backward-compatible with old sessions).
+function sessionProperty(s) {
+  if (!s) return getPropertyName() || 'Asset Survey';
+  return s.property || s.name || getPropertyName() || 'Asset Survey';
 }
 
 async function confirmEndSession() {
@@ -1099,7 +1212,8 @@ function closeEndSessionModal() {
 async function exportThenEnd() {
   closeEndSessionModal();
   if (!activeSession) return;
-  await exportExcelSession(activeSession.id, activeSession.name);
+  const exported = await exportExcelSession(activeSession.id, activeSession.name);
+  if (exported === false) return;   // user cancelled at the pending-assets warning — don't end yet
   await endSession();
 }
 
@@ -1116,6 +1230,7 @@ async function endSession() {
   await DB.putSession(activeSession);
   lastLocation = '';
   activeSession = null;
+  assetFilterTouched = false;
   await loadActiveSession();
   renderSessionsTab();
   showToast('⏹ Session ended');
@@ -1131,6 +1246,7 @@ async function reopenSession(id) {
   await DB.putSession(session);
   activeSession = session;
   allSessions = allSessions.map(s => s.id === id ? session : s);
+  assetFilterTouched = false;
   updateSessionIndicator();
   updateSurveySessionGate();
   renderSessionsTab();
@@ -1165,38 +1281,80 @@ async function renderSessionsTab() {
     startEl.style.display = 'block';
   }
 
-  const pastSessions = sessions.filter(s => s.status !== 'active');
+  const pastAll = sessions.filter(s => s.status !== 'active');
+  const past     = pastAll.filter(s => !s.archived);
+  const archived = pastAll.filter(s => s.archived);
   const pastEl = document.getElementById('pastSessionsList');
 
-  if (!pastSessions.length) {
+  if (!pastAll.length) {
     pastEl.innerHTML = sessions.length === 0
-      ? `<div class="empty-state"><div class="empty-icon">📁</div><p>No sessions yet</p><small>Start a session above to begin surveying</small></div>`
+      ? `<div class="empty-state"><div class="empty-icon">📁</div><p>No surveys yet</p><small>Start a survey above to begin</small></div>`
       : '';
     return;
   }
 
-  pastEl.innerHTML = `
-    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin-bottom:10px;padding:0 2px">Past Sessions</div>
-    ${pastSessions.map(s => {
-      const count = assets.filter(a => a.sessionId === s.id).length;
-      const date = new Date(s.startTime).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
-      const endDate = s.endTime ? new Date(s.endTime).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : '';
-      return `
+  const subhead = txt => `<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin:4px 0 10px;padding:0 2px">${txt}</div>`;
+  const card = (s, isArchived) => {
+    const count = assets.filter(a => a.sessionId === s.id).length;
+    const pend  = assets.filter(a => a.sessionId === s.id && a.enriched === false).length;
+    const date = new Date(s.startTime).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+    const endDate = s.endTime ? new Date(s.endTime).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : '';
+    return `
       <div class="session-card">
         <div class="session-card-header">
           <div class="session-status-dot completed"></div>
           <div style="flex:1">
-            <div class="session-name">${esc(s.name)}</div>
-            <div class="session-meta">${date}${endDate && endDate!==date?' → '+endDate:''} · ${count} asset${count!==1?'s':''}</div>
+            <div class="session-name">${esc(sessionProperty(s))}</div>
+            <div class="session-meta">${date}${endDate && endDate!==date?' → '+endDate:''} · ${count} asset${count!==1?'s':''}${pend?` · ⚡ ${pend} need info`:''}</div>
           </div>
         </div>
         <div class="session-actions">
           <button class="btn btn-outline btn-sm" onclick="openLogModal('${s.id}')">📄 Log</button>
           <button class="btn btn-outline btn-sm" onclick="reopenSession('${s.id}')">🔓 Reopen</button>
-          <button class="btn btn-teal btn-sm" onclick="exportExcelSession('${s.id}','${esc(s.name)}')">⬇️ Export</button>
+          <button class="btn btn-teal btn-sm" onclick="exportExcelSession('${s.id}')">⬇️ Export</button>
+          ${isArchived
+            ? `<button class="btn btn-outline btn-sm" onclick="unarchiveSession('${s.id}')">📤 Unarchive</button>`
+            : `<button class="btn btn-outline btn-sm" onclick="archiveSession('${s.id}')">🗄️ Archive</button>`}
         </div>
       </div>`;
-    }).join('')}`;
+  };
+
+  pastEl.innerHTML = `
+    ${past.length ? subhead('Past Surveys') + past.map(s => card(s, false)).join('') : ''}
+    ${archived.length ? `<div onclick="toggleArchived()" style="cursor:pointer;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin:14px 0 10px;padding:0 2px"><span id="archCaret">▸</span> Archived (${archived.length})</div>` +
+      `<div id="archivedList" style="display:none">${archived.map(s => card(s, true)).join('')}</div>` : ''}
+  `;
+}
+
+async function archiveSession(id) {
+  const s = await DB.getSession(id); if (!s) return;
+  s.archived = true;
+  s.log = s.log || []; s.log.push({ time: new Date().toISOString(), action: 'Archived' });
+  await DB.putSession(s);
+  allSessions = allSessions.map(x => x.id === id ? s : x);
+  renderSessionsTab();
+  backupToGist();
+  showToast('🗄️ Survey archived');
+}
+
+async function unarchiveSession(id) {
+  const s = await DB.getSession(id); if (!s) return;
+  s.archived = false;
+  s.log = s.log || []; s.log.push({ time: new Date().toISOString(), action: 'Unarchived' });
+  await DB.putSession(s);
+  allSessions = allSessions.map(x => x.id === id ? s : x);
+  renderSessionsTab();
+  backupToGist();
+  showToast('📤 Survey unarchived');
+}
+
+function toggleArchived() {
+  const list = document.getElementById('archivedList');
+  const car  = document.getElementById('archCaret');
+  if (!list) return;
+  const open = list.style.display !== 'none';
+  list.style.display = open ? 'none' : 'block';
+  if (car) car.textContent = open ? '▸' : '▾';
 }
 
 function formatElapsed(date) {
@@ -1293,6 +1451,7 @@ function getRefObjUrl(asset) {
 // ══════════════ MANUAL ENTRY ══════════════
 function setManualEntry() {
   isManualEntry = true;
+  currentEnriched = !getFastCapture();  // in fast mode, still defer year+cost to Process All
   currentCondition = '';
   populateForm({});
   clearConfidenceWarnings();
@@ -1319,7 +1478,9 @@ async function analyzeImage() {
   if (!currentFile) return;
   if (!getApiKey()) { openSettings(); return; }
 
+  const fast = getFastCapture();
   isManualEntry = false;
+  currentEnriched = false;
   const spinner = document.getElementById('spinnerWrap');
   const analyzeBtn = document.getElementById('analyzeBtn');
   const label = document.getElementById('spinnerLabel');
@@ -1330,13 +1491,16 @@ async function analyzeImage() {
   document.getElementById('resultsSection').style.display = 'none';
   document.getElementById('aiAlert').innerHTML = '';
 
-  const msgs = [
-    ['Reading tag with Claude Vision…', 'Sending image to AI'],
-    ['Identifying equipment…', 'Extracting make, model & serial number'],
-    ['Searching the web for this model…', 'Live search: pricing & availability'],
-    ['Looking up MSRP & lifecycle…', 'Decoding serial and checking service life']
-  ];
+  const msgs = fast
+    ? [['Reading tag with Claude Vision…', 'Extracting make, model & serial number']]
+    : [
+      ['Reading tag with Claude Vision…', 'Sending image to AI'],
+      ['Identifying equipment…', 'Extracting make, model & serial number'],
+      ['Searching the web for this model…', 'Live search: pricing & availability'],
+      ['Looking up MSRP & lifecycle…', 'Decoding serial and checking service life']
+    ];
   let step = 0;
+  label.textContent = msgs[0][0]; steps.textContent = msgs[0][1];
   const ticker = setInterval(() => {
     if (step < msgs.length) { label.textContent = msgs[step][0]; steps.textContent = msgs[step][1]; step++; }
   }, 2200);
@@ -1351,13 +1515,18 @@ async function analyzeImage() {
     const extracted = await analyzeTagImage(base64, mimeType, hint, refBase64, refMime);
     if (hint && !extracted.equipmentType) extracted.equipmentType = hint;
 
-    const searchQuery = [extracted.make, extracted.modelNumber, extracted.equipmentType, 'specifications lifespan year'].filter(Boolean).join(' ');
-    const [searchContext, msrpData] = await Promise.all([
-      searchDDG(searchQuery),
-      getMSRPInfo(extracted.make, extracted.modelNumber, extracted.equipmentType, hint).catch(() => null)
-    ]);
-
-    const info = await getEquipmentInfo(extracted.make, extracted.modelNumber, extracted.serialNumber, extracted.equipmentType, searchContext);
+    // Fast Capture: read the tag only. Year + pricing are deferred to "Process All".
+    let info = {}, msrpData = null;
+    if (!fast) {
+      const searchQuery = [extracted.make, extracted.modelNumber, extracted.equipmentType, 'specifications lifespan year'].filter(Boolean).join(' ');
+      const [searchContext, msrp] = await Promise.all([
+        searchDDG(searchQuery),
+        getMSRPInfo(extracted.make, extracted.modelNumber, extracted.equipmentType, hint).catch(() => null)
+      ]);
+      msrpData = msrp;
+      info = await getEquipmentInfo(extracted.make, extracted.modelNumber, extracted.serialNumber, extracted.equipmentType, searchContext);
+      currentEnriched = true;
+    }
 
     clearInterval(ticker);
     spinner.classList.remove('visible');
@@ -1375,9 +1544,15 @@ async function analyzeImage() {
     const hasLowConf = applyConfidenceWarnings(extracted.confidence || {});
 
     document.getElementById('resultsSection').style.display = 'block';
-    document.getElementById('aiAlert').innerHTML = hasLowConf
-      ? `<div class="alert alert-warning">⚠️ The AI had trouble reading the <strong>highlighted fields</strong> — please verify them against the tag before saving.</div>`
-      : `<div class="alert alert-success">✅ AI extracted tag data. Review and correct any fields below.</div>`;
+    if (fast) {
+      document.getElementById('aiAlert').innerHTML = hasLowConf
+        ? `<div class="alert alert-warning">⚡ Fast capture — verify the <strong>highlighted fields</strong> against the tag, set the condition, then Save. Year &amp; pricing are filled in later with <strong>Process All</strong>.</div>`
+        : `<div class="alert alert-success">⚡ Tag read — set the condition and Save. Year &amp; pricing are filled in later with <strong>Process All</strong>.</div>`;
+    } else {
+      document.getElementById('aiAlert').innerHTML = hasLowConf
+        ? `<div class="alert alert-warning">⚠️ The AI had trouble reading the <strong>highlighted fields</strong> — please verify them against the tag before saving.</div>`
+        : `<div class="alert alert-success">✅ AI extracted tag data. Review and correct any fields below.</div>`;
+    }
 
   } catch (err) {
     clearInterval(ticker);
@@ -1437,6 +1612,7 @@ async function relookupFromFields() {
     if (info.yearOfService)      document.getElementById('f-yearOfService').value = info.yearOfService;
     if (info.estimatedLifecycle) document.getElementById('f-estimatedLifecycle').value = info.estimatedLifecycle;
     if (msrpData) renderMSRPResult(msrpData);
+    currentEnriched = true;
 
     document.getElementById('aiAlert').innerHTML =
       `<div class="alert alert-success">✅ Year, lifecycle &amp; pricing updated from your corrected info — your make/model/serial were not changed.</div>`;
@@ -1508,6 +1684,7 @@ async function saveAsset() {
       sessionName: activeSession.name,
       condition: currentCondition || '',
       manualEntry: isManualEntry,
+      enriched: !!currentEnriched,
       isObsolete: msrpData?.isObsolete || false,
       replacementModel: msrpData?.replacementModel || '',
       replacementMSRP: msrpData?.replacementMSRP || null,
@@ -1531,6 +1708,7 @@ async function saveAsset() {
     // Stay on survey tab — reset form and condition
     currentCondition = '';
     isManualEntry = false;
+    currentEnriched = false;
     clearCapture();
     clearRefPhoto();
     populateForm({});
@@ -1551,6 +1729,7 @@ async function saveAsset() {
 function resetSurvey() {
   currentCondition = '';
   isManualEntry = false;
+  currentEnriched = false;
   clearCapture();
   clearRefPhoto();
   populateForm({});
@@ -1568,23 +1747,33 @@ async function loadAssets() {
   try {
     allAssets = await DB.getAll();
     await populateSessionFilter();
-    renderAssets(allAssets);
+    filterAssets();      // honors the (defaulted) session filter + renders the pending banner
     updateBadge();
   } catch (err) { showToast('❌ Failed to load assets'); }
+}
+
+function onSessionFilterChange() {
+  assetFilterTouched = true;
+  filterAssets();
 }
 
 async function populateSessionFilter() {
   const sessions = await DB.getAllSessions();
   const sel = document.getElementById('sessionFilter');
   const cur = sel.value;
-  sel.innerHTML = '<option value="">All sessions</option>';
+  sel.innerHTML = '<option value="">All surveys</option>';
   sessions.forEach(s => {
     const o = document.createElement('option');
     o.value = s.id;
-    o.textContent = s.name;
+    o.textContent = sessionProperty(s) + (s.archived ? ' (archived)' : '');
     sel.appendChild(o);
   });
-  if (cur) sel.value = cur;
+  // Default the Assets list to the current survey so it isn't cluttered with
+  // every past property. Once the surveyor picks a filter, respect their choice
+  // until a new survey starts.
+  if (assetFilterTouched) sel.value = cur;
+  else if (activeSession) sel.value = activeSession.id;
+  else sel.value = '';
 }
 
 function updateBadge() {
@@ -1604,6 +1793,73 @@ function filterAssets() {
     [a.make, a.modelNumber, a.serialNumber, a.equipmentType, a.location, a.notes, a.condition].some(v => (v||'').toLowerCase().includes(q))
   );
   renderAssets(filtered);
+  renderPendingBanner();
+}
+
+// ══════════════ PROCESS ALL (batch year + cost enrichment) ══════════════
+// Assets captured in Fast mode carry enriched:false. This fills their year +
+// pricing in one batch, back at the desk. Only BLANK fields are filled, so
+// anything the surveyor typed by hand is never overwritten.
+function pendingInView() {
+  const sessId = document.getElementById('sessionFilter').value;
+  let list = allAssets.filter(a => a.enriched === false);
+  if (sessId) list = list.filter(a => a.sessionId === sessId);
+  return list;
+}
+
+function renderPendingBanner() {
+  const el = document.getElementById('pendingBanner');
+  if (!el) return;
+  const n = pendingInView().length;
+  if (!n) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div class="pending-banner">
+      <span style="font-size:20px">⚡</span>
+      <div class="pb-text"><strong>${n} asset${n!==1?'s':''}</strong> captured fast — still need Year &amp; Cost.</div>
+      <button class="btn btn-primary btn-sm" style="flex:none" onclick="processAllPending()">Process All</button>
+    </div>`;
+}
+
+async function processAllPending() {
+  if (!getApiKey()) { openSettings(); return; }
+  const list = pendingInView();
+  if (!list.length) { showToast('✅ Nothing to process'); return; }
+  const el = document.getElementById('pendingBanner');
+  let done = 0, failed = 0;
+  for (let i = 0; i < list.length; i++) {
+    const a = list[i];
+    const who = esc([a.make, a.modelNumber].filter(Boolean).join(' ') || a.equipmentType || 'asset');
+    el.innerHTML = `
+      <div class="pending-banner">
+        <div class="spinner" style="width:20px;height:20px;flex:none;margin:0"></div>
+        <div class="pb-text">Processing <strong>${i+1} of ${list.length}</strong>… <span style="color:#8a6d00">${who}</span></div>
+      </div>`;
+    try {
+      const make = a.make||'', model = a.modelNumber||'', serial = a.serialNumber||'', type = a.equipmentType||'';
+      const searchQuery = [make, model, type].filter(Boolean).join(' ') + ' specifications lifespan year';
+      const [searchContext, msrpData] = await Promise.all([
+        searchDDG(searchQuery),
+        getMSRPInfo(make, model, type, type).catch(() => null)
+      ]);
+      const info = await getEquipmentInfo(make, model, serial, type, searchContext);
+      const updated = { ...a, enriched: true };
+      if (!(updated.yearOfService||'').trim() && info.yearOfService)      updated.yearOfService = info.yearOfService;
+      if (!(updated.estimatedLifecycle||'').trim() && info.estimatedLifecycle) updated.estimatedLifecycle = info.estimatedLifecycle;
+      if (msrpData) {
+        if (!updated.msrp && msrpData.msrp) updated.msrp = msrpData.msrp;
+        updated.isObsolete = updated.isObsolete || msrpData.isObsolete || false;
+        if (!updated.replacementModel && msrpData.replacementModel) updated.replacementModel = msrpData.replacementModel;
+        if (!updated.replacementMSRP && msrpData.replacementMSRP) updated.replacementMSRP = msrpData.replacementMSRP;
+      }
+      await DB.put(updated);
+      done++;
+    } catch (e) {
+      failed++;   // leave enriched:false so it can be retried on the next Process All
+    }
+  }
+  await loadAssets();
+  backupToGist();
+  showToast(`✅ Processed ${done}${failed ? ` · ${failed} failed (tap Process All to retry)` : ''}`, 4000);
 }
 
 function getObjUrl(asset) {
@@ -1841,6 +2097,9 @@ async function saveEdit() {
   const updated = { ...a };
   fields.forEach(f => { updated[f] = document.getElementById('e-' + f)?.value.trim() || ''; });
   updated.msrp = parseCost(document.getElementById('e-msrp')?.value);
+  // If the surveyor has filled in a Year, treat the asset as completed so it
+  // no longer shows in the "needs info" / Process All queue.
+  if ((updated.yearOfService || '').trim()) updated.enriched = true;
   try {
     await DB.put(updated);
     showToast('✅ Asset updated');
@@ -1974,9 +2233,19 @@ async function factoryLookupEmailAll() {
 
 async function exportSession() {
   if (!activeSession) return;
-  closeReviewModal();
   const assets = (await DB.getAll()).filter(a => a.sessionId === activeSession.id);
-  await buildExcel(assets, activeSession.name);
+  if (!assets.length) { showToast('No assets in this session'); return; }
+  if (!(await guardEnriched(assets))) return;
+  closeReviewModal();
+  await buildExcel(assets, activeSession.areaLabel || '', sessionProperty(activeSession));
+}
+
+// Export guard — warn before building the full capital workbook if some
+// assets have not yet had their year + pricing filled in (fast-captured).
+async function guardEnriched(assets) {
+  const pending = assets.filter(a => a.enriched === false).length;
+  if (!pending) return true;
+  return confirm(`${pending} asset${pending !== 1 ? 's' : ''} in this export still need Year & Cost.\n\nThe "Process All" button on the Assets tab fills those in. Export anyway with those fields blank?`);
 }
 
 // ══════════════ CAPITAL PROJECTION HELPERS ══════════════
@@ -2022,14 +2291,18 @@ function calcAssetProjection(a) {
 // ══════════════ EXCEL EXPORT ══════════════
 async function exportExcelSession(sessionId, sessionName) {
   const assets = (await DB.getAll()).filter(a => a.sessionId === sessionId);
-  if (!assets.length) { showToast('No assets in this session'); return; }
-  await buildExcel(assets, sessionName);
+  if (!assets.length) { showToast('No assets in this session'); return false; }
+  if (!(await guardEnriched(assets))) return false;
+  const session = await DB.getSession(sessionId);
+  await buildExcel(assets, session?.areaLabel || '', sessionProperty(session) || sessionName);
+  return true;
 }
 
-async function buildExcel(assets, sessionLabel) {
+async function buildExcel(assets, sessionLabel, propertyName) {
   if (!assets.length) { showToast('No assets to export'); return; }
 
-  const propName    = getPropertyName() || 'Equipment Asset Survey';
+  const propName    = propertyName || getPropertyName() || 'Equipment Asset Survey';
+  const idLabel     = sessionLabel ? `${propName}  —  ${sessionLabel}` : propName;
   const dateStr     = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
   const currentYear = new Date().getFullYear();
   const projYears   = Array.from({ length: 11 }, (_, i) => currentYear + i);
@@ -2112,7 +2385,7 @@ async function buildExcel(assets, sessionLabel) {
   ];
   const knownCost = assets.reduce((s,a)=>s+(parseCost(a.replacementCost)||0),0);
   const inv1 = [
-    [`${propName}  —  ${sessionLabel}  |  Capital Asset Inventory`, ...Array(invCols.length-2).fill(''), `${assets.length} Assets`],
+    [`${idLabel}  |  Capital Asset Inventory`, ...Array(invCols.length-2).fill(''), `${assets.length} Assets`],
     [`Generated: ${dateStr}   |   Known Replacement Cost Total: ${knownCost>0?'$'+knownCost.toLocaleString():'TBD'}`, ...Array(invCols.length-1).fill('')],
     Array(invCols.length).fill(''),
     invCols.map(c=>c.h),
@@ -2161,7 +2434,7 @@ async function buildExcel(assets, sessionLabel) {
     {h:'Age at\nReplace',wch:10},{h:'Est. Replacement\nCost',wch:18},{h:'Notes',wch:32}
   ];
   const proj1 = [
-    [`${propName}  —  ${sessionLabel}  |  Capital Expenditure Projection`, ...Array(projCols.length-2).fill(''), `${projItems.length} Items`],
+    [`${idLabel}  |  Capital Expenditure Projection`, ...Array(projCols.length-2).fill(''), `${projItems.length} Items`],
     [`Generated: ${dateStr}   |   Sorted: Earliest Replacement First   |   Total Known Cost: ${projTotalCost>0?'$'+projTotalCost.toLocaleString():'TBD'}`, ...Array(projCols.length-1).fill('')],
     Array(projCols.length).fill(''),
     projCols.map(c=>c.h),
@@ -2210,7 +2483,7 @@ async function buildExcel(assets, sessionLabel) {
   });
   const sum1=[
     [`${propName}  —  ${currentYear}–${currentYear+10} Capital Budget Summary`, ...Array(sumCols.length-2).fill(''), `Total: ${grandTotal>0?'$'+grandTotal.toLocaleString():'TBD'}`],
-    [`Generated: ${dateStr}   |   Session: ${sessionLabel}   |   ${currentYear}–${currentYear+10} Planning Horizon`, ...Array(sumCols.length-1).fill('')],
+    [`Generated: ${dateStr}   |   ${sessionLabel ? 'Session: '+sessionLabel+'   |   ' : ''}${currentYear}–${currentYear+10} Planning Horizon`, ...Array(sumCols.length-1).fill('')],
     Array(sumCols.length).fill(''),
     sumCols.map(c=>c.h),
     ...sumRows.map(x=>x.row),
@@ -2240,8 +2513,8 @@ async function buildExcel(assets, sessionLabel) {
   XLSX.utils.book_append_sheet(wb, ws3, `${currentYear}–${currentYear+10} Summary`);
 
   const buf      = XLSX.write(wb, { type: 'array', bookType: 'xlsx', cellStyles: true });
-  const safeName = sessionLabel.replace(/[^a-z0-9]/gi, '-').toLowerCase().slice(0, 40);
-  const filename = `capital-projection-${safeName}-${new Date().toISOString().slice(0,10)}.xlsx`;
+  const safeName = propName.replace(/[^a-z0-9]/gi, '-').toLowerCase().replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0, 40);
+  const filename = `capital-projection-${safeName || 'survey'}-${new Date().toISOString().slice(0,10)}.xlsx`;
   const mimeXlsx = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   const blob     = new Blob([buf], { type: mimeXlsx });
 
@@ -2249,7 +2522,7 @@ async function buildExcel(assets, sessionLabel) {
   const file = new File([buf], filename, { type: mimeXlsx });
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
-      await navigator.share({ files: [file], title: `Capital Projection — ${sessionLabel}` });
+      await navigator.share({ files: [file], title: `Capital Projection — ${propName}` });
       return;
     } catch (e) {
       if (e.name === 'AbortError') return; // user dismissed share sheet
@@ -2264,6 +2537,158 @@ async function buildExcel(assets, sessionLabel) {
   document.body.appendChild(dl); dl.click(); document.body.removeChild(dl);
   URL.revokeObjectURL(url);
   showToast('⬇️ Capital projection downloading…');
+}
+
+// ══════════════ FIELD CAPTURE SHEET (simple one-tab export) ══════════════
+async function buildFieldSheet(assets, sessionLabel, propertyName) {
+  if (!assets.length) { showToast('No assets to export'); return; }
+  const propName = propertyName || getPropertyName() || 'Asset Survey';
+  const idLabel  = sessionLabel ? `${propName}  —  ${sessionLabel}` : propName;
+  const dateStr  = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+  const NAVY='0F4C75', BLUE='1B6CA8', WHITE='FFFFFF', LIGHT='EBF5FB', ALT='F5F8FA';
+  const cols = [
+    {h:'#',wch:4},{h:'Survey Date',wch:12},{h:'Equipment Type',wch:22},{h:'Make',wch:16},
+    {h:'Model Number',wch:20},{h:'Serial Number',wch:20},{h:'Location',wch:24},{h:'Condition',wch:14},
+    {h:'Year of Service',wch:16},{h:'Est. Replacement Cost',wch:20},{h:'Notes',wch:34}
+  ];
+  const rows = [
+    [`${idLabel}  |  Field Capture Sheet`, ...Array(cols.length-2).fill(''), `${assets.length} Assets`],
+    [`Generated: ${dateStr}   |   Year & Cost columns to be completed at the desk`, ...Array(cols.length-1).fill('')],
+    Array(cols.length).fill(''),
+    cols.map(c=>c.h),
+    ...assets.map((a,i)=>[
+      i+1, new Date(a.timestamp).toLocaleDateString('en-US'), a.equipmentType||'', a.make||'',
+      a.modelNumber||'', a.serialNumber||'', a.location||'', a.condition||'',
+      a.yearOfService||'', (a.replacementCost || (a.msrp ? '$'+Number(a.msrp).toLocaleString() : '')), a.notes||''
+    ])
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = cols.map(c=>({wch:c.wch}));
+  const st = {
+    titleL:{font:{bold:true,sz:15,color:{rgb:WHITE},name:'Calibri'},fill:{fgColor:{rgb:NAVY},patternType:'solid'},alignment:{horizontal:'left',vertical:'center',indent:1}},
+    titleR:{font:{bold:false,sz:10,color:{rgb:'80C4E9'},name:'Calibri'},fill:{fgColor:{rgb:NAVY},patternType:'solid'},alignment:{horizontal:'right',vertical:'center',indent:1}},
+    sub:{font:{sz:9,italic:true,color:{rgb:'4A6080'},name:'Calibri'},fill:{fgColor:{rgb:LIGHT},patternType:'solid'},alignment:{horizontal:'left',vertical:'center',indent:1}},
+    hdr:{font:{bold:true,sz:9,color:{rgb:WHITE},name:'Calibri'},fill:{fgColor:{rgb:BLUE},patternType:'solid'},alignment:{horizontal:'center',vertical:'center',wrapText:true}},
+    even:{font:{sz:10,name:'Calibri'},fill:{fgColor:{rgb:ALT},patternType:'solid'},alignment:{vertical:'center'}},
+    odd:{font:{sz:10,name:'Calibri'},fill:{fgColor:{rgb:WHITE},patternType:'solid'},alignment:{vertical:'center'}}
+  };
+  const setC = (r,c,s) => { const ref = XLSX.utils.encode_cell({r,c}); if (!ws[ref]) ws[ref] = {v:'',t:'s'}; ws[ref].s = s; };
+  for (let c=0;c<cols.length;c++){ setC(0,c, c<cols.length-1?st.titleL:st.titleR); setC(1,c,st.sub); setC(3,c,st.hdr); }
+  ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:cols.length-2}},{s:{r:1,c:0},e:{r:1,c:cols.length-1}}];
+  ws['!rows'] = [{hpt:30},{hpt:16},{hpt:6},{hpt:30}];
+  assets.forEach((a,i)=>{ const r=i+4; const base=i%2===0?st.even:st.odd; for(let c=0;c<cols.length;c++) setC(r,c,base); ws['!rows'][r]={hpt:20}; });
+  ws['!freeze'] = {xSplit:0,ySplit:4};
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Field Capture');
+
+  const buf = XLSX.write(wb, { type:'array', bookType:'xlsx', cellStyles:true });
+  const safe = propName.replace(/[^a-z0-9]/gi,'-').toLowerCase().replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,40);
+  const filename = `field-capture-${safe || 'survey'}-${new Date().toISOString().slice(0,10)}.xlsx`;
+  const mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  const file = new File([buf], filename, { type: mime });
+  if (navigator.canShare && navigator.canShare({ files:[file] })) {
+    try { await navigator.share({ files:[file], title:`Field Capture — ${propName}` }); return; }
+    catch (e) { if (e.name === 'AbortError') return; }
+  }
+  const blob = new Blob([buf], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const dl = document.createElement('a');
+  dl.href = url; dl.download = filename;
+  document.body.appendChild(dl); dl.click(); document.body.removeChild(dl);
+  URL.revokeObjectURL(url);
+  showToast('⬇️ Field capture sheet downloading…');
+}
+
+// ══════════════ EXPORT SELECTION MODAL ══════════════
+let exportType = 'field';
+
+function setExportType(t) {
+  exportType = t;
+  document.getElementById('expType-field').classList.toggle('sel', t === 'field');
+  document.getElementById('expType-full').classList.toggle('sel', t === 'full');
+  const btn = document.getElementById('exportSelectedBtn');
+  if (btn) btn.innerHTML = t === 'field' ? '⬇️ Export Field Sheet(s)' : '⬇️ Export Full Workbook(s)';
+}
+
+async function openExportModal() {
+  const sessions = await DB.getAllSessions();
+  const assets = await DB.getAll();
+  const withAssets = sessions.filter(s => assets.some(a => a.sessionId === s.id));
+  if (!withAssets.length) { showToast('No assets to export yet'); return; }
+
+  setExportType('field');
+  const preferId = document.getElementById('sessionFilter').value || (activeSession && activeSession.id) || '';
+
+  document.getElementById('exportSessionList').innerHTML = withAssets.map(s => {
+    const sAssets = assets.filter(a => a.sessionId === s.id);
+    const pend = sAssets.filter(a => a.enriched === false).length;
+    const date = new Date(s.startTime).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+    const checked = (s.id === preferId);
+    return `
+      <div class="exp-sess">
+        <div class="exp-sess-head">
+          <input type="checkbox" id="exp-sess-cb-${s.id}" ${checked?'checked':''} onclick="toggleSessionAssets('${s.id}', this.checked)">
+          <div class="exp-sess-title" onclick="toggleExpAssets('${s.id}')">
+            <div class="exp-sess-name">${esc(sessionProperty(s))}</div>
+            <div class="exp-sess-meta">${date} · ${sAssets.length} asset${sAssets.length!==1?'s':''}${pend?` · ⚡ ${pend} need info`:''}</div>
+          </div>
+          <span class="exp-caret" id="exp-caret-${s.id}" onclick="toggleExpAssets('${s.id}')">▸</span>
+        </div>
+        <div class="exp-assets" id="exp-assets-${s.id}">
+          ${sAssets.map(a => `
+            <label class="exp-asset">
+              <input type="checkbox" class="exp-asset-cb" data-session="${s.id}" value="${a.id}" ${checked?'checked':''}>
+              <span>${esc([a.make,a.modelNumber].filter(Boolean).join(' ') || a.equipmentType || 'Asset')}${a.serialNumber?` · S/N ${esc(a.serialNumber)}`:''}</span>
+              ${a.enriched===false?`<span class="exp-asset-need">needs info</span>`:''}
+            </label>`).join('')}
+        </div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('exportModal').classList.add('open');
+}
+
+function closeExportModal() { document.getElementById('exportModal').classList.remove('open'); }
+
+function toggleExpAssets(id) {
+  document.getElementById('exp-assets-'+id).classList.toggle('open');
+  document.getElementById('exp-caret-'+id).classList.toggle('open');
+}
+
+function toggleSessionAssets(id, checked) {
+  document.querySelectorAll(`.exp-asset-cb[data-session="${id}"]`).forEach(cb => cb.checked = checked);
+}
+
+async function doExportSelected() {
+  const boxes = [...document.querySelectorAll('.exp-asset-cb:checked')];
+  if (!boxes.length) { showToast('⚠️ Select at least one asset'); return; }
+
+  const bySession = {};
+  boxes.forEach(cb => { (bySession[cb.dataset.session] = bySession[cb.dataset.session] || []).push(cb.value); });
+
+  const all = await DB.getAll();
+  const groups = [];
+  for (const sid of Object.keys(bySession)) {
+    const s = await DB.getSession(sid);
+    const ids = new Set(bySession[sid]);
+    const picked = all.filter(a => ids.has(a.id));
+    if (picked.length) groups.push({ s, picked });
+  }
+  if (!groups.length) { showToast('⚠️ Nothing selected'); return; }
+
+  const typeLabel = exportType === 'field' ? 'Field Capture Sheet' : 'Full Capital Workbook';
+  const lines = groups.map(g => `• ${sessionProperty(g.s)} — ${g.picked.length} asset${g.picked.length!==1?'s':''}`).join('\n');
+  if (!confirm(`Export ${groups.length} ${typeLabel}${groups.length!==1?'s':''} — one file per property:\n\n${lines}`)) return;
+
+  closeExportModal();
+  for (const g of groups) {
+    if (exportType === 'full') {
+      if (!(await guardEnriched(g.picked))) continue;
+      await buildExcel(g.picked, g.s?.areaLabel || '', sessionProperty(g.s));
+    } else {
+      await buildFieldSheet(g.picked, g.s?.areaLabel || '', sessionProperty(g.s));
+    }
+  }
 }
 
 // ══════════════ SETTINGS ══════════════
@@ -2302,7 +2727,7 @@ function checkInstallBanner() {
 }
 
 // Close modals on overlay tap
-['settingsModal','editModal','installModal','reviewModal','logModal','endSessionModal'].forEach(id => {
+['settingsModal','editModal','installModal','reviewModal','logModal','endSessionModal','exportModal'].forEach(id => {
   document.getElementById(id).addEventListener('click', e => {
     if (e.target.id === id) document.getElementById(id).classList.remove('open');
   });
@@ -2312,6 +2737,7 @@ document.getElementById('imgViewer').addEventListener('click', e => { if (e.targ
 // ══════════════ INIT ══════════════
 DB.init().then(async () => {
   updateKeyIndicator();
+  updateFastUI();
   updateBadge();
   checkInstallBanner();
   await loadActiveSession();
